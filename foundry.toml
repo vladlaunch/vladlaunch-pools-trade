@@ -1,0 +1,18 @@
+[profile.default]
+src = "contracts/src"
+test = "contracts/test"
+script = "contracts/script"
+out = "contracts/out"
+libs = ["contracts/lib"]
+solc = "0.8.26"
+evm_version = "cancun"
+
+remappings = [
+  "v4-core/=contracts/lib/v4-core/src/",
+  "v4-core-test/=contracts/lib/v4-core/test/",
+  "v4-periphery/=contracts/lib/v4-periphery/src/",
+  "v4-periphery-test/=contracts/lib/v4-periphery/test/",
+  "@uniswap/v4-core/=contracts/lib/v4-periphery/lib/v4-core/",
+  "@openzeppelin/=contracts/lib/openzeppelin-contracts/",
+  "permit2/=contracts/lib/v4-periphery/lib/permit2/",
+]

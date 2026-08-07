@@ -1,0 +1,265 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   VLADLAUNCH — design system
+   Palette sampled directly from inspiring.nk.studio (computed styles, not eyeballed):
+     ink        rgb(237,237,237)   text
+     void       rgb(7,11,10)       page floor
+     deep       rgb(4,24,25)       teal floor
+     abyss      rgb(5,27,28)       gradient base
+     line       rgb(31,53,53)      hairlines + washes
+     mint       rgb(0,255,194)     accent
+     mint-dim   rgb(32,231,183)    accent pressed
+     muted      rgb(136,138,136)   secondary text
+   Type: Instrument Serif (display) + DM Sans (UI) — same pairing as the reference.
+   ========================================================================= */
+
+@theme {
+  --color-ink: #ededed;
+  --color-ink-dim: rgba(237, 237, 237, 0.62);
+  --color-ink-faint: rgba(237, 237, 237, 0.34);
+  --color-void: #070b0a;
+  --color-deep: #041819;
+  --color-abyss: #051b1c;
+  --color-panel: #0a1a1a;
+  --color-panel-hi: #0e2222;
+  --color-line: #1f3535;
+  --color-line-hi: #2c4a49;
+  --color-mint: #00ffc2;
+  --color-mint-dim: #20e7b7;
+  --color-muted: #888a88;
+  --color-up: #00ffc2;
+  --color-down: #ff5c7a;
+  --color-warn: #ffc857;
+
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --radius-card: 14px;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-void);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-mint);
+  color: var(--color-deep);
+}
+
+/* --- AURORA FLOOR ---------------------------------------------------------
+   The reference page is a black room with a teal pool of light rising from the
+   bottom. Two radial washes + one linear lift, all in oklab so the mid-tones
+   don't go grey. Fixed, behind everything, pointer-events none.
+------------------------------------------------------------------------- */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(90% 62% at 22% 104%, rgba(0, 255, 194, 0.18) 0%, transparent 62%),
+    radial-gradient(85% 58% at 82% 108%, rgba(0, 255, 194, 0.13) 0%, transparent 60%),
+    radial-gradient(130% 92% at 50% 112%, #072e31 0%, transparent 72%),
+    linear-gradient(to top in oklab, #083436 0%, var(--color-void) 78%);
+}
+
+/* Slow drift so the floor breathes without ever competing with text. */
+.aurora::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(46% 34% at 50% 100%, rgba(0, 255, 194, 0.1) 0%, transparent 70%);
+  animation: drift 26s var(--ease-out-soft) infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-6%, 2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6%, -3%, 0) scale(1.12);
+  }
+}
+
+/* The fixed aurora pools at the bottom of the viewport, which leaves the very top
+   of a long page reading as flat black. This halo sits behind the hero only, so the
+   teal is present where the first impression happens. */
+.hero-halo {
+  position: absolute;
+  /* Horizontal inset is 0, not negative: bleeding past the parent widened the document
+     and gave the whole page a 104px horizontal scroll. The bloom reaches the edges via
+     the gradient stops instead. */
+  inset: -180px 0 auto 0;
+  height: 1100px;
+  /* z-index 0, not -1: a negative index would paint behind the opaque body
+     background and the halo would never be seen. Content sits above via z-10. */
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(62% 58% at 18% 42%, rgba(0, 255, 194, 0.12) 0%, transparent 70%),
+    radial-gradient(56% 52% at 88% 16%, rgba(0, 255, 194, 0.08) 0%, transparent 72%),
+    radial-gradient(85% 60% at 50% 78%, rgba(7, 46, 49, 0.9) 0%, transparent 74%);
+}
+
+/* Film grain — kills the banding that big soft gradients always produce. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora::after {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- SURFACES ------------------------------------------------------------ */
+.card {
+  background: linear-gradient(
+    to bottom in oklab,
+    rgba(31, 53, 53, 0.34) 0%,
+    rgba(10, 26, 26, 0.72) 100%
+  );
+  border: 1px solid rgba(31, 53, 53, 0.9);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(14px);
+  transition:
+    border-color 0.28s var(--ease-out-soft),
+    transform 0.28s var(--ease-out-soft),
+    box-shadow 0.28s var(--ease-out-soft);
+}
+
+.card-lift:hover {
+  border-color: rgba(0, 255, 194, 0.42);
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 194, 0.08),
+    0 18px 46px -22px rgba(0, 255, 194, 0.5);
+}
+
+.hairline {
+  border-color: rgba(31, 53, 53, 0.9);
+}
+
+/* Ghost cards — the reference dims the cards at the edge of the field instead
+   of cropping them. Reused for empty/skeleton slots. */
+.ghost {
+  opacity: 0.26;
+  filter: saturate(0.4);
+}
+
+/* --- TYPE ---------------------------------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 0.98;
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* --- BITS ---------------------------------------------------------------- */
+.mint-glow {
+  box-shadow: 0 0 24px -6px rgba(0, 255, 194, 0.55);
+}
+
+.scan-track {
+  background: linear-gradient(90deg, rgba(31, 53, 53, 0.45), rgba(31, 53, 53, 0.15));
+}
+
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin scrollbar for the board */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-hi) transparent;
+}
+
+/* Pulse used on "live" dots and fresh-trade row flashes */
+@keyframes pulse-mint {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 255, 194, 0.45);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 5px rgba(0, 255, 194, 0);
+  }
+}
+.live-dot {
+  animation: pulse-mint 2.2s ease-in-out infinite;
+}
+
+@keyframes flash-in {
+  from {
+    background-color: rgba(0, 255, 194, 0.14);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.flash-row {
+  animation: flash-in 1.1s var(--ease-out-soft) 1;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.6s var(--ease-out-soft) both;
+}

@@ -1,0 +1,22 @@
+# Internal working notes. Written in Indonesian and full of unpublished research —
+# kept out of the public repo on purpose.
+notes/
+
+# Secrets. The Pinata JWT lives in web/.env.local and must never be committed.
+.env
+.env.local
+.env*.local
+
+# Vendored Uniswap sources. `contracts/lib` is a symlink locally; consumers run
+# `forge install` instead of inheriting a broken link.
+contracts/lib
+contracts/out
+contracts/cache
+contracts/broadcast
+cache/
+out/
+
+node_modules
+.next
+.DS_Store
+*.tsbuildinfo
