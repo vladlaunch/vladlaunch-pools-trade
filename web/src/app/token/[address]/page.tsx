@@ -9,7 +9,7 @@ import {
   graduationThresholdUsd,
   hasGraduated,
 } from "@/lib/pools";
-import type { ActivityStats } from "@/lib/pools";
+import type { ActivityStats, Launch } from "@/lib/pools";
 import { PriceChart } from "@/components/PriceChart";
 import { TradeFeed } from "@/components/TradeFeed";
 import { CurveBar } from "@/components/TokenCard";
@@ -19,6 +19,8 @@ import { feeLabel } from "@/components/FeeBadge";
 import { usd, price, compact, pct, age, short, hueFrom } from "@/lib/format";
 import { explorer } from "@/lib/chain";
 import { TokenImage } from "@/components/TokenImage";
+import { readTokenMeta, isXUrl } from "@/lib/tokenmeta";
+import { CopyAddress } from "@/components/CopyAddress";
 
 export const revalidate = 10;
 
@@ -32,9 +34,10 @@ function LiquidityPanel({
   facts: PoolKeyFacts | null;
 }) {
   const severe = facts ? facts.fee > 30_000 : false;
+  const risky = custody.kind === "creator";
 
   return (
-    <div className={`card p-4 ${custody.kind === "creator" || severe ? "border-warn/40" : ""}`}>
+    <div className={`card p-4 ${risky || severe ? "border-warn/40" : ""}`}>
       <div className="label">Liquidity &amp; fee</div>
 
       <dl className="mt-4 flex flex-col gap-4">
@@ -62,6 +65,16 @@ function LiquidityPanel({
         <div className="border-t border-line/60 pt-4">
           <dt className="text-[12px] text-muted">LP position</dt>
           <dd className="mt-1">
+            {custody.kind === "vladlaunch" && (
+              <>
+                <span className="num text-[15px] text-mint">Locked, unpullable</span>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-ink-dim">
+                  Held by a contract with no call that moves it or reduces it. Fees are
+                  collected by withdrawing zero liquidity, so the principal has no route
+                  out — for the creator or anyone else.
+                </p>
+              </>
+            )}
             {custody.kind === "locked" && (
               <>
                 <span className="num text-[15px] text-mint">Held by the fee splitter</span>
@@ -145,8 +158,37 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
   const { address } = await params;
   if (!/^0x[a-fA-F0-9]{40}$/.test(address)) notFound();
 
-  const launch = await fetchLaunch(address).catch(() => null);
-  if (!launch) notFound();
+  // The chain is the floor and the feed is the garnish, not the other way round.
+  // Requiring the feed meant a token that plainly exists on-chain 404'd whenever the
+  // indexer lagged or hiccuped — which is exactly when its creator goes looking for it.
+  const [feed, meta] = await Promise.all([
+    fetchLaunch(address).catch(() => null),
+    readTokenMeta(address as `0x${string}`),
+  ]);
+  if (!feed && !meta) notFound();
+
+  const launch: Launch = {
+    ...(feed ?? ({} as Launch)),
+    tokenAddress: address,
+    tokenName: meta?.name || feed?.tokenName || "Unknown token",
+    tokenSymbol: meta?.symbol || feed?.tokenSymbol || "???",
+    // Written at creation and immutable, so the chain outranks the feed on all three.
+    description: meta?.description || feed?.description || null,
+    imageUrl: meta?.image || feed?.imageUrl || null,
+    xUrl: meta?.website && isXUrl(meta.website) ? meta.website : (feed?.xUrl ?? null),
+    poolStats: feed?.poolStats ?? {
+      priceUsd: 0,
+      priceEth: 0,
+      priceChange1hPct: 0,
+      priceChange24hPct: 0,
+      volume24hUsd: 0,
+      liquidityUsd: 0,
+    },
+    graduationProgress: feed?.graduationProgress ?? 0,
+    graduationTargetUsd: feed?.graduationTargetUsd ?? 50_000,
+    fdvUsd: feed?.fdvUsd ?? 0,
+  };
+  const website = meta?.website && !isXUrl(meta.website) ? meta.website : null;
 
   const [candles, trades, traders, stats, custody] = await Promise.all([
     fetchOhlc(address, "ONE_HOUR").catch(() => []),
@@ -202,14 +244,7 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
             )}
           </div>
           <div className="num mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted">
-            <a
-              href={explorer.token(launch.tokenAddress)}
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-mint"
-            >
-              {short(launch.tokenAddress, 6, 6)}
-            </a>
+            <CopyAddress address={launch.tokenAddress} />
             {launch.createdAt && <span>launched {age(launch.createdAt, now)} ago</span>}
             {launch.creatorAddress && (
               <span>
@@ -231,9 +266,21 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
                 rel="noreferrer"
                 className="transition-colors hover:text-mint"
               >
-                {launch.xVerified ? "X (verified)" : "X"}
+                {launch.xUrl.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "@")}
+                {launch.xVerified ? " ✓" : ""}
               </a>
             )}
+            {website && (
+              <a
+                href={website}
+                target="_blank"
+                rel="noreferrer"
+                className="transition-colors hover:text-mint"
+              >
+                {website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+              </a>
+            )}
+            {!feed && <span className="text-warn">market data unavailable</span>}
           </div>
         </div>
 
@@ -304,7 +351,7 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
               market; it does not yet sign for it.
             </p>
             <a
-              href={`https://pools.trade/token/${launch.tokenAddress}`}
+              href={`https://pools.trade/t/${launch.tokenAddress}`}
               target="_blank"
               rel="noreferrer"
               className="mt-4 block rounded-full bg-mint px-4 py-2.5 text-center text-sm font-medium text-deep transition-colors hover:bg-mint-dim"

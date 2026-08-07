@@ -121,12 +121,16 @@ export function fetchLaunches(sortBy: "volume" | "recency" = "volume") {
  * xUrl, and createdAt comes back as an empty string. So we read both and merge, with
  * the detail winning wherever it actually has a value.
  */
-export async function fetchLaunch(tokenAddress: string): Promise<Launch> {
+export async function fetchLaunch(tokenAddress: string): Promise<Launch | null> {
+  // Null, not throw: a token that exists on-chain must still render when the feed
+  // is unreachable or has not finished indexing it. The caller fills the gap from
+  // the chain rather than showing a 404 for something that demonstrably exists.
   const detail = await trpc<Partial<Launch> & { websiteUrl?: string }>(
     "curve.getLaunchByAddress",
     { tokenAddress },
     10,
-  );
+  ).catch(() => null);
+  if (!detail) return null;
 
   const fromList = await fetchLaunches("volume")
     .then((rows) => rows.find((r) => r.tokenAddress.toLowerCase() === tokenAddress.toLowerCase()))

@@ -1,5 +1,6 @@
 import { createPublicClient, http, parseAbiParameters, decodeAbiParameters, type Hex } from "viem";
 import { robinhoodChain, CUSTODY, TOKEN_LAUNCHED_TOPIC, BLOCK_TIME_MS } from "./chain";
+import { FEE_SPLIT } from "./launchpad";
 
 /**
  * Who ends up holding the LP position for a launch — the single fact that decides
@@ -22,7 +23,11 @@ const client = createPublicClient({
 });
 
 export type Custody =
+  /** Our own splitter: unpullable, and it collects the full fee on both sides. */
+  | { kind: "vladlaunch"; holder: string; fee: number; tickSpacing: number }
+  /** The pools.trade splitter: unpullable, but it forwards only part of the fee. */
   | { kind: "locked"; holder: string; fee: number; tickSpacing: number }
+  /** A wallet. Whoever holds it can remove the liquidity. */
   | { kind: "creator"; holder: string; fee: number; tickSpacing: number }
   | { kind: "unknown"; reason: string };
 
@@ -72,9 +77,19 @@ export async function readCustody(tokenAddress: string, createdAtIso: string): P
       log.data,
     );
 
-    const locked = holder.toLowerCase() === CUSTODY.FEE_SPLITTER.toLowerCase();
+    // Order matters: our splitter is not the pools.trade one, but it is just as
+    // unpullable. Classifying it as "creator" would have this site warning people off
+    // its own launches.
+    const lower = holder.toLowerCase();
+    const kind =
+      FEE_SPLIT && lower === FEE_SPLIT.toLowerCase()
+        ? ("vladlaunch" as const)
+        : lower === CUSTODY.FEE_SPLITTER.toLowerCase()
+          ? ("locked" as const)
+          : ("creator" as const);
+
     return {
-      kind: locked ? "locked" : "creator",
+      kind,
       holder,
       fee: Number(fee),
       tickSpacing: Number(tickSpacing),
