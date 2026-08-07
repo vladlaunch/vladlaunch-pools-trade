@@ -33,6 +33,9 @@ approval exists on it. Add a withdrawal path later and that test fails.
 | `VladFeeSplit` | [`0xee1327A78909067566d133e2CeE31086660dB8BE`](https://robinhoodchain.blockscout.com/address/0xee1327A78909067566d133e2CeE31086660dB8BE) |
 | `VladLaunchRouter` | [`0x2F0f67E77D83cE1f225e80200F25b9843261f49a`](https://robinhoodchain.blockscout.com/address/0x2F0f67E77D83cE1f225e80200F25b9843261f49a) |
 
+All three are **source-verified on Blockscout** — read them there rather than taking this
+README's word for what they do.
+
 The strategy address is the registry — every launch emits `TokenLaunched` from it.
 It is fixed for the life of the launchpad.
 
