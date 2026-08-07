@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { Launch, SortKey, FilterKey } from "@/lib/pools";
 import { sortLaunches, filterLaunches, heat, hasGraduated } from "@/lib/pools";
 import { recoverPoolKey } from "@/lib/poolkey";
+import { TokenImage } from "./TokenImage";
 import { FeeBadge } from "./FeeBadge";
 import { usd, price, compact, pct, age, hueFrom } from "@/lib/format";
 import { CurveBar } from "./TokenCard";
@@ -154,18 +155,19 @@ export function Board({ launches, now }: { launches: Launch[]; now: number }) {
                       href={`/token/${l.tokenAddress}`}
                       className="flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
                     >
-                      {l.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- remote launch art
-                        <img src={l.imageUrl} alt="" loading="lazy" className="size-7 rounded object-cover" />
-                      ) : (
-                        <span
-                          className="grid size-7 place-items-center rounded text-xs"
-                          style={{ background: `hsl(${hue} 55% 18%)` }}
-                          aria-hidden
-                        >
-                          {l.imageEmoji ?? l.tokenSymbol.slice(0, 1)}
-                        </span>
-                      )}
+                      <TokenImage
+                        src={l.imageUrl}
+                        className="size-7 rounded object-cover"
+                        onUnavailable={
+                          <span
+                            className="grid size-7 place-items-center rounded text-xs"
+                            style={{ background: `hsl(${hue} 55% 18%)` }}
+                            aria-hidden
+                          >
+                            {l.imageEmoji ?? l.tokenSymbol.slice(0, 1)}
+                          </span>
+                        }
+                      />
                       <span className="min-w-0">
                         <span className="num block text-[13px] text-ink transition-colors group-hover:text-mint">
                           ${l.tokenSymbol}

@@ -18,6 +18,7 @@ import { recoverPoolKey, roundTripPct, STANDARD_FEE, type PoolKeyFacts } from "@
 import { feeLabel } from "@/components/FeeBadge";
 import { usd, price, compact, pct, age, short, hueFrom } from "@/lib/format";
 import { explorer } from "@/lib/chain";
+import { TokenImage } from "@/components/TokenImage";
 
 export const revalidate = 10;
 
@@ -174,18 +175,19 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
       </Link>
 
       <header className="mt-6 flex flex-wrap items-start gap-5">
-        {launch.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- remote launch art
-          <img src={launch.imageUrl} alt="" className="size-16 rounded-xl object-cover" />
-        ) : (
-          <div
-            className="grid size-16 place-items-center rounded-xl text-2xl"
-            style={{ background: `hsl(${hue} 55% 18%)` }}
-            aria-hidden
-          >
-            {launch.imageEmoji ?? launch.tokenSymbol.slice(0, 1)}
-          </div>
-        )}
+        <TokenImage
+          src={launch.imageUrl}
+          className="size-16 rounded-xl object-cover"
+          onUnavailable={
+            <div
+              className="grid size-16 place-items-center rounded-xl text-2xl"
+              style={{ background: `hsl(${hue} 55% 18%)` }}
+              aria-hidden
+            >
+              {launch.imageEmoji ?? launch.tokenSymbol.slice(0, 1)}
+            </div>
+          }
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">

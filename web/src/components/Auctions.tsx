@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Auction } from "@/lib/pools";
 import { clearingPremium, graduationThresholdUsd } from "@/lib/pools";
 import { usd, price, compact, hueFrom } from "@/lib/format";
+import { resolveImage } from "@/lib/ipfs";
 
 /* Crowd Launch is the launchpad's other mechanic: a fixed-window batch auction.
    Everyone fills at one clearing price when the window shuts, so the only two
@@ -37,15 +38,10 @@ function Countdown({ endsAt }: { endsAt: string }) {
   );
 }
 
-function ipfsToHttp(url: string | null) {
-  if (!url) return null;
-  return url.startsWith("ipfs://") ? `https://ipfs.io/ipfs/${url.slice(7)}` : url;
-}
-
 function AuctionCard({ a }: { a: Auction }) {
   const live = a.status === "live";
   const premium = clearingPremium(a);
-  const img = ipfsToHttp(a.xProfileImageUrl ?? a.imageUrl);
+  const img = resolveImage(a.xProfileImageUrl ?? a.imageUrl);
   const hue = hueFrom(a.tokenAddress, a.imageHue);
   const target = graduationThresholdUsd(a);
 

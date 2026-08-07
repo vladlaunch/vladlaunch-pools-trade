@@ -193,14 +193,25 @@ export function graffitiFor(creator: Address): Hex {
   return keccak256(encodeAbiParameters([{ type: "address" }], [creator]));
 }
 
+/**
+ * `image` is written to the token contract as-is and can never be changed, so it is
+ * stored as `ipfs://<cid>` rather than a gateway URL.
+ *
+ * The SDK this came from rewrote ipfs:// into a gateway link. That bakes one company's
+ * hostname into the token forever: the day that gateway rate-limits, moves, or shuts
+ * down, the art is gone and nobody can fix it. A CID has no such dependency, and it is
+ * already the dominant convention here — 67 of the 100 live curve launches and every
+ * crowd auction store ipfs://.
+ *
+ * Rendering it is the reader's problem, which is what lib/ipfs.ts solves.
+ */
 export function encodeMetadata(input: {
   description?: string;
   website?: string;
   image?: string;
 }): Hex {
-  const image = input.image?.startsWith("ipfs://")
-    ? `https://gateway.pinata.cloud/ipfs/${input.image.slice(7)}`
-    : (input.image?.startsWith("http") ? input.image : "");
+  const image =
+    input.image?.startsWith("ipfs://") || input.image?.startsWith("http") ? input.image : "";
   return encodeAbiParameters(METADATA_PARAMS, [
     {
       description: input.description ?? "",

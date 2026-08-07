@@ -2,32 +2,28 @@ import Link from "next/link";
 import type { Launch } from "@/lib/pools";
 import { GRADUATION_FLOOR, hasGraduated } from "@/lib/pools";
 import { recoverPoolKey } from "@/lib/poolkey";
+import { TokenImage } from "./TokenImage";
 import { FeeBadge } from "./FeeBadge";
 import { usd, compact, pct, age, hueFrom } from "@/lib/format";
 
 function Avatar({ l }: { l: Launch }) {
   const hue = hueFrom(l.tokenAddress, l.imageHue);
-  if (l.imageUrl) {
-    // eslint-disable-next-line @next/next/no-img-element -- remote launch art, arbitrary hosts
-    return (
-      <img
-        src={l.imageUrl}
-        alt=""
-        loading="lazy"
-        className="size-11 shrink-0 rounded-lg object-cover"
-      />
-    );
-  }
   return (
-    <div
-      className="grid size-11 shrink-0 place-items-center rounded-lg text-lg"
-      style={{
-        background: `linear-gradient(150deg, hsl(${hue} 60% 22%), hsl(${(hue + 40) % 360} 55% 12%))`,
-      }}
-      aria-hidden
-    >
-      {l.imageEmoji ?? l.tokenSymbol.slice(0, 1)}
-    </div>
+    <TokenImage
+      src={l.imageUrl}
+      className="size-11 shrink-0 rounded-lg object-cover"
+      onUnavailable={
+        <div
+          className="grid size-11 shrink-0 place-items-center rounded-lg text-lg"
+          style={{
+            background: `linear-gradient(150deg, hsl(${hue} 60% 22%), hsl(${(hue + 40) % 360} 55% 12%))`,
+          }}
+          aria-hidden
+        >
+          {l.imageEmoji ?? l.tokenSymbol.slice(0, 1)}
+        </div>
+      }
+    />
   );
 }
 
