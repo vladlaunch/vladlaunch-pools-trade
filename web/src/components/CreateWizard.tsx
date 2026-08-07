@@ -16,6 +16,7 @@ import {
   UERC20_FACTORY,
   UERC20_FACTORY_ABI,
   CUSTOM_STRATEGY,
+  launchConfigMissing,
   SUPPLY,
   DECIMALS,
   FEE_PRESETS,
@@ -198,15 +199,19 @@ export function CreateWizard() {
       functionName: "createToken",
       args: [UERC20_FACTORY, d.name, d.symbol, DECIMALS, SUPPLY, LAUNCHER, tokenData],
     });
+    // Unreachable unless configured — the component returns early when it is not.
+    if (!CUSTOM_STRATEGY) throw new Error("No launch strategy configured.");
+    const strategy = CUSTOM_STRATEGY as Address;
+
     const distributeCall = encodeFunctionData({
       abi: LAUNCHER_ABI,
       functionName: "distributeToken",
       args: [
         token,
         {
-          strategy: CUSTOM_STRATEGY,
+          strategy,
           amount: SUPPLY,
-          configData: buildConfigData(CUSTOM_STRATEGY, settings),
+          configData: buildConfigData(strategy, settings),
         },
         launchSalt(address!, d.symbol),
       ],
@@ -306,6 +311,22 @@ export function CreateWizard() {
     } finally {
       setBusy(false);
     }
+  }
+
+  const missingConfig = launchConfigMissing();
+
+  if (missingConfig.length > 0) {
+    return (
+      <div className="card mt-10 border-warn/40 p-6">
+        <div className="label !text-warn">Launching is not available here</div>
+        <p className="mt-3 text-[13px] leading-relaxed text-ink-dim">
+          This deployment has no launch contracts configured, so the form will not build a
+          transaction. Deploying without them would create real tokens through an address
+          nobody chose.
+        </p>
+        <p className="num mt-3 text-[12px] text-ink-faint">Missing: {missingConfig.join(", ")}</p>
+      </div>
+    );
   }
 
   if (launchedToken) {

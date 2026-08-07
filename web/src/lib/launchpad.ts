@@ -36,9 +36,23 @@ export const OFFICIAL_STRATEGIES: readonly Address[] = [
   "0xD8861C07a590A1F1775faF9E7732aF3eabb5B114",
 ];
 
-/** Our own CustomFeeStrategy. One contract serves every fee — fee rides in configData. */
-export const CUSTOM_STRATEGY = (process.env.NEXT_PUBLIC_STRATEGY ??
-  "0x544ef36801e90ee56bcd699ed51a63cfceac8ec9") as Address;
+/**
+ * Our own strategy. One contract serves every fee — the fee rides in configData.
+ *
+ * Deliberately NOT defaulted. A hardcoded fallback here would let a deployment with no
+ * environment set launch real tokens through whatever address that fallback happened to
+ * be: no registry entry, no protocol fee, liquidity in the wrong custody, and no error
+ * anywhere. Unset means the launch form refuses to build a transaction.
+ */
+export const CUSTOM_STRATEGY = (process.env.NEXT_PUBLIC_STRATEGY ?? "") as Address | "";
+
+/** Everything the launch path needs before it may send anything. */
+export function launchConfigMissing(): string[] {
+  const missing: string[] = [];
+  if (!CUSTOM_STRATEGY) missing.push("NEXT_PUBLIC_STRATEGY");
+  if (!FEE_SPLIT) missing.push("NEXT_PUBLIC_FEE_SPLIT");
+  return missing;
+}
 
 export function isOfficialStrategy(s: Address) {
   return OFFICIAL_STRATEGIES.some((o) => o.toLowerCase() === s.toLowerCase());
