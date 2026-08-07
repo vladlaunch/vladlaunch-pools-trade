@@ -19,7 +19,8 @@ import { feeLabel } from "@/components/FeeBadge";
 import { usd, price, compact, pct, age, short, hueFrom } from "@/lib/format";
 import { explorer } from "@/lib/chain";
 import { TokenImage } from "@/components/TokenImage";
-import { readTokenMeta, isXUrl } from "@/lib/tokenmeta";
+import { readTokenMeta } from "@/lib/tokenmeta";
+import { XMark, GlobeMark } from "@/components/Icons";
 import { CopyAddress } from "@/components/CopyAddress";
 
 export const revalidate = 10;
@@ -175,7 +176,7 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
     // Written at creation and immutable, so the chain outranks the feed on all three.
     description: meta?.description || feed?.description || null,
     imageUrl: meta?.image || feed?.imageUrl || null,
-    xUrl: meta?.website && isXUrl(meta.website) ? meta.website : (feed?.xUrl ?? null),
+    xUrl: meta?.xUrl ?? feed?.xUrl ?? null,
     poolStats: feed?.poolStats ?? {
       priceUsd: 0,
       priceEth: 0,
@@ -188,7 +189,7 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
     graduationTargetUsd: feed?.graduationTargetUsd ?? 50_000,
     fdvUsd: feed?.fdvUsd ?? 0,
   };
-  const website = meta?.website && !isXUrl(meta.website) ? meta.website : null;
+  const website = meta?.website ?? null;
 
   const [candles, trades, traders, stats, custody] = await Promise.all([
     fetchOhlc(address, "ONE_HOUR").catch(() => []),
@@ -264,10 +265,12 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
                 href={launch.xUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="transition-colors hover:text-mint"
+                title={launch.xUrl}
+                aria-label="X profile"
+                className="inline-flex items-center gap-1 rounded p-1 transition-colors hover:bg-line/60 hover:text-ink"
               >
-                {launch.xUrl.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "@")}
-                {launch.xVerified ? " ✓" : ""}
+                <XMark />
+                {launch.xVerified && <span className="text-[10px] text-mint">✓</span>}
               </a>
             )}
             {website && (
@@ -275,9 +278,11 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
                 href={website}
                 target="_blank"
                 rel="noreferrer"
-                className="transition-colors hover:text-mint"
+                title={website}
+                aria-label="Project website"
+                className="inline-flex items-center rounded p-1 transition-colors hover:bg-line/60 hover:text-ink"
               >
-                {website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+                <GlobeMark />
               </a>
             )}
             {!feed && <span className="text-warn">market data unavailable</span>}

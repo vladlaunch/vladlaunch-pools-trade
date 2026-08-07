@@ -205,19 +205,40 @@ export function graffitiFor(creator: Address): Hex {
  *
  * Rendering it is the reader's problem, which is what lib/ipfs.ts solves.
  */
+/**
+ * The UERC20 metadata struct has ONE `website` string, so a launch that supplies both
+ * an X profile and a site can only keep one of them there — and the first version of
+ * this function silently dropped the site by writing `xUrl || website`. Whatever is
+ * lost here is lost permanently: the struct is written once at creation.
+ *
+ * `extraData` is free-form bytes and was going out empty, so both links go in there as
+ * JSON and `website` keeps the site (falling back to the X profile when there is no
+ * site, so a token with only an X link still fills the field other indexers read).
+ */
 export function encodeMetadata(input: {
   description?: string;
   website?: string;
+  xUrl?: string;
   image?: string;
 }): Hex {
   const image =
     input.image?.startsWith("ipfs://") || input.image?.startsWith("http") ? input.image : "";
+
+  const links: Record<string, string> = {};
+  if (input.xUrl) links.x = input.xUrl;
+  if (input.website) links.website = input.website;
+
+  const extraData =
+    Object.keys(links).length > 0
+      ? (`0x${Buffer.from(JSON.stringify({ v: 1, links }), "utf8").toString("hex")}` as Hex)
+      : "0x";
+
   return encodeAbiParameters(METADATA_PARAMS, [
     {
       description: input.description ?? "",
-      website: input.website ?? "",
+      website: input.website || input.xUrl || "",
       image,
-      extraData: "0x",
+      extraData,
     },
   ]);
 }

@@ -42,19 +42,47 @@ export type OnChainMeta = {
   name: string;
   symbol: string;
   description: string;
-  website: string;
+  /** The site, once the X profile has been separated out of the single website slot. */
+  website: string | null;
+  xUrl: string | null;
   image: string;
-  /** X handle, when the creator attached a verification token at launch. */
+  /** Present when an official launch attached a signed X verification token. */
   xHandle: string | null;
 };
 
-/** Official launches carry a signed X verification blob in extraData. */
-function readXHandle(extraData: string): string | null {
-  if (!extraData || extraData === "0x") return null;
+function bytesToText(hex: string): string | null {
+  if (!hex || hex === "0x") return null;
+  const pairs = hex.slice(2).match(/.{2}/g);
+  if (!pairs) return null;
   try {
-    const bytes = extraData.slice(2).match(/.{2}/g);
-    if (!bytes) return null;
-    const text = String.fromCharCode(...bytes.map((b) => parseInt(b, 16)));
+    return decodeURIComponent(
+      pairs.map((b) => `%${b}`).join(""),
+    );
+  } catch {
+    return String.fromCharCode(...pairs.map((b) => parseInt(b, 16)));
+  }
+}
+
+/**
+ * Launches made here write {v, links:{x, website}} into extraData, because the struct
+ * only has room for one link and a token with both would otherwise lose one forever.
+ */
+function readLinks(extraData: string): { x?: string; website?: string } {
+  const text = bytesToText(extraData);
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text) as { links?: { x?: string; website?: string } };
+    return parsed.links ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** Official launches carry a signed X verification blob in the same field. */
+function readXHandle(extraData: string): string | null {
+  const text = bytesToText(extraData);
+  if (!text) return null;
+  try {
     const outer = JSON.parse(text) as { xVerificationToken?: string };
     const payload = outer.xVerificationToken?.split(".")[0];
     if (!payload) return null;
@@ -79,13 +107,21 @@ export async function readTokenMeta(token: Address): Promise<OnChainMeta | null>
     ]);
     const [description, website, image, extraData] = meta;
 
+    const links = readLinks(extraData);
+    const handle = readXHandle(extraData);
+
+    // The single website slot holds either a site or an X profile depending on what the
+    // creator supplied, so sort it by host rather than trusting its name.
+    const slotIsX = website ? isXUrl(website) : false;
+
     return {
       name: name as string,
       symbol: symbol as string,
       description,
-      website,
+      website: links.website ?? (slotIsX ? null : website || null),
+      xUrl: links.x ?? (slotIsX ? website : handle ? `https://x.com/${handle}` : null),
       image,
-      xHandle: readXHandle(extraData),
+      xHandle: handle,
     };
   } catch {
     // Not every token on this chain is a UERC20.
