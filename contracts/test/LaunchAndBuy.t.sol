@@ -307,6 +307,53 @@ contract LaunchAndBuyForkTest is Test {
         assertEq(IERC20(tok2).balanceOf(address(feeSplit)), 0, "no token stranded");
         assertEq(address(feeSplit).balance, 0, "no ETH stranded");
     }
+
+    /// The load-bearing promise of this launchpad, asserted rather than asserted-in-prose:
+    /// collecting fees must never move the principal, and nothing must be able to move
+    /// the position out of the splitter.
+    ///
+    /// If someone later adds a withdrawal path to VladFeeSplit, this test fails.
+    function test_liquidityCannotBePulled() public {
+        uint256 id = IPositionManager(POSITION_MANAGER).nextTokenId();
+        (bytes[] memory calls, address token, PoolKey memory key) = _calls("Locked", "LOCKD", 10_000, false);
+
+        vm.deal(creator, 20 ether);
+        vm.prank(creator);
+        router.launchAndBuy{value: 3 ether}(calls, key, 1);
+
+        uint128 before = _positionLiquidity(id);
+        assertGt(before, 0, "position should hold the supply");
+        assertEq(IERC721(POSITION_MANAGER).ownerOf(id), address(feeSplit), "custody");
+
+        // Generate fees, then claim them repeatedly. Principal must not budge.
+        // Read the balance BEFORE the prank: an external call in an argument consumes
+        // the prank, and the transfer would then run as this contract.
+        uint256 half = IERC20(token).balanceOf(creator) / 2;
+        vm.prank(creator);
+        IERC20(token).transfer(address(seller), half);
+        seller.sell(key, half);
+
+        feeSplit.claimDirect(id);
+        feeSplit.claimDirect(id);
+
+        assertEq(_positionLiquidity(id), before, "claiming fees must not reduce liquidity");
+        assertEq(IERC721(POSITION_MANAGER).ownerOf(id), address(feeSplit), "position must not leave the splitter");
+
+        // And the creator cannot reach it: the splitter exposes no call that touches
+        // the NFT, so an approval they might try to grant themselves does not exist.
+        assertEq(
+            IERC721(POSITION_MANAGER).getApproved(id),
+            address(0),
+            "no approval may exist on the position"
+        );
+    }
+
+    function _positionLiquidity(uint256 tokenId) internal view returns (uint128) {
+        (bool ok, bytes memory data) =
+            POSITION_MANAGER.staticcall(abi.encodeWithSignature("getPositionLiquidity(uint256)", tokenId));
+        require(ok, "getPositionLiquidity");
+        return abi.decode(data, (uint128));
+    }
 }
 
 /// Minimal seller so the test can push volume the other way through the pool.

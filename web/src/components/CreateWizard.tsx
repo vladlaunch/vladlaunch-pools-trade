@@ -93,8 +93,6 @@ export function CreateWizard() {
       feeRecipient: (address ?? ZERO_ADDRESS) as Address,
       fee,
       hooks: hooksAddr,
-      // Always locked — see the Liquidity note in step 3.
-      lockPosition: true,
     }),
     [address, fee, hooksAddr],
   );
@@ -420,9 +418,14 @@ export function CreateWizard() {
             <div className="border-t border-line/60 pt-5">
               <div className="text-[13px] text-ink">Liquidity</div>
               <p className="mt-2 text-[12px] leading-relaxed text-ink-dim">
-                The LP position goes to the fee splitter and stays there. You keep a Fee
-                Beneficiary NFT — a claim on the fees, not on the liquidity. Nobody can pull
-                it, including you. Every launch here works this way, which is the point.
+                Your LP position is held by a contract that has no way to move it and no way
+                to reduce it. Fees are collected by withdrawing zero liquidity, so the
+                principal cannot leave. Nobody can pull it — you included. Every launch here
+                works this way, which is what makes it worth saying.
+              </p>
+              <p className="mt-2 text-[12px] leading-relaxed text-ink-faint">
+                You still collect the fees: 75% to you, 25% to the protocol, claimable any
+                time from the Claim page.
               </p>
             </div>
           </div>
@@ -438,7 +441,7 @@ export function CreateWizard() {
                 { k: "Swap fee", v: feeLabel(fee) },
                 { k: "Quote asset", v: "ETH" },
                 { k: "Graduates at", v: `${usd(5_000_000)} FDV` },
-                { k: "LP position", v: "Fee splitter (locked)" },
+                { k: "LP position", v: "Locked, unpullable" },
                 { k: "Hook", v: hooksAddr === ZERO_ADDRESS ? "None" : hooks },
               ].map((r) => (
                 <div key={r.k} className="border-b border-line/50 pb-2">

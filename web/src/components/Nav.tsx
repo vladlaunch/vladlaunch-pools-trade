@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/", label: "Explore" },
   { href: "/board", label: "Board" },
   { href: "/create", label: "Create" },
+  { href: "/claim", label: "Claim" },
 ];
 
 /** Live block height — the cheapest honest proof the page is talking to the chain. */
@@ -41,7 +42,7 @@ function BlockChip() {
 
   if (block == null) return null;
   return (
-    <span className="num hidden items-center gap-2 text-[11px] text-muted md:inline-flex">
+    <span className="num hidden items-center gap-2 text-[11px] text-muted xl:inline-flex">
       <span className="live-dot inline-block size-1.5 rounded-full bg-mint" />
       {block.toLocaleString("en-US")}
     </span>
@@ -72,7 +73,7 @@ export function Nav() {
           aria-label="VladLaunch home"
         >
           <Mark size={26} className="transition-transform duration-300 group-hover:-translate-y-0.5" />
-          <span className="display hidden text-[19px] leading-none text-ink sm:inline">
+          <span className="display hidden text-[19px] leading-none text-ink md:inline">
             VladLaunch
           </span>
         </Link>
@@ -100,7 +101,7 @@ export function Nav() {
           {/* The label shortens rather than wrapping — a three-line pill is a broken nav. */}
           <Link
             href="/create"
-            className="hidden shrink-0 whitespace-nowrap rounded-full bg-mint px-3.5 py-2 text-sm font-medium text-deep transition-all duration-200 hover:bg-mint-dim hover:mint-glow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint sm:inline-block sm:px-4"
+            className="hidden shrink-0 whitespace-nowrap rounded-full bg-mint px-4 py-2 text-sm font-medium text-deep transition-all duration-200 hover:bg-mint-dim hover:mint-glow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint lg:inline-block"
           >
             Launch a token
           </Link>

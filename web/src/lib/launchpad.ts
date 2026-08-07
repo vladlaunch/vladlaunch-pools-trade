@@ -202,9 +202,24 @@ export type LaunchSettings = {
   /** Fixed rate in millionths, or DYNAMIC_FEE_FLAG. */
   fee: number;
   hooks: Address;
-  /** true hands the LP position to the fee splitter; false keeps it in feeRecipient's wallet. */
-  lockPosition: boolean;
 };
+
+/**
+ * Custody is not a launch option on this pad.
+ *
+ * `false` tells the strategy to keep the LP position in VladFeeSplit instead of handing
+ * it to the pools.trade splitter. That contract has no call which moves the position or
+ * reduces liquidity — fees are collected by decreasing liquidity by zero — so nobody can
+ * pull the liquidity, creator included. It also collects 100% of the fee on both sides
+ * rather than the 40%/0% the pools.trade splitter forwards.
+ *
+ * Both facts are asserted in contracts/test: test_liquidityCannotBePulled and
+ * test_compare_custodyRoutes.
+ */
+export const LOCK_POSITION = false;
+
+/** VladFeeSplit — holds every position and pays out 75/25. */
+export const FEE_SPLIT = (process.env.NEXT_PUBLIC_FEE_SPLIT ?? "") as Address | "";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
 
@@ -238,7 +253,7 @@ export function buildConfigData(strategy: Address, s: LaunchSettings): Hex {
       startTick: GEOMETRY.startTick,
       tickLower: GEOMETRY.tickLower,
       hooks: s.hooks,
-      lockPosition: s.lockPosition,
+      lockPosition: LOCK_POSITION,
     },
   ]);
 }

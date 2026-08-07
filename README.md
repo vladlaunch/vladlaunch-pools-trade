@@ -18,7 +18,12 @@ in a Uniswap v4 pool. Only the distribution step is ours.
 
 Nobody who launches here can pull the liquidity. Not because of a policy — because the
 position is never in a person's wallet, and the contract that does hold it exposes no
-call that removes principal.
+call that removes principal. Fees are collected by decreasing liquidity by **zero**, so
+the principal has no route out at all.
+
+`test_liquidityCannotBePulled` asserts this against live chain state: after repeated
+claims the position's liquidity is unchanged, it still belongs to the splitter, and no
+approval exists on it. Add a withdrawal path later and that test fails.
 
 ## Contracts
 
@@ -63,7 +68,7 @@ contracts/          Foundry project
   src/              the three contracts above
   test/             fork tests against live Robinhood Chain state
   script/Deploy     deploys all three, wired together
-web/                Next.js 16 app — explore, board, token pages, launch wizard
+web/                Next.js 16 app — explore, board, token pages, launch wizard, claim
 ```
 
 ## Running it
