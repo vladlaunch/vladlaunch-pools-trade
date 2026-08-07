@@ -25,6 +25,17 @@ the principal has no route out at all.
 claims the position's liquidity is unchanged, it still belongs to the splitter, and no
 approval exists on it. Add a withdrawal path later and that test fails.
 
+## Deployed — Robinhood Chain (4663)
+
+| Contract | Address |
+|---|---|
+| `VladStrategy` | [`0x0256b6Cf22487B1C2076fF1565F1368DFFa39743`](https://robinhoodchain.blockscout.com/address/0x0256b6Cf22487B1C2076fF1565F1368DFFa39743) |
+| `VladFeeSplit` | [`0xee1327A78909067566d133e2CeE31086660dB8BE`](https://robinhoodchain.blockscout.com/address/0xee1327A78909067566d133e2CeE31086660dB8BE) |
+| `VladLaunchRouter` | [`0x2F0f67E77D83cE1f225e80200F25b9843261f49a`](https://robinhoodchain.blockscout.com/address/0x2F0f67E77D83cE1f225e80200F25b9843261f49a) |
+
+The strategy address is the registry — every launch emits `TokenLaunched` from it.
+It is fixed for the life of the launchpad.
+
 ## Contracts
 
 | Contract | Purpose |
