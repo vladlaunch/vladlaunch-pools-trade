@@ -221,6 +221,58 @@ export const LOCK_POSITION = false;
 /** VladFeeSplit — holds every position and pays out 75/25. */
 export const FEE_SPLIT = (process.env.NEXT_PUBLIC_FEE_SPLIT ?? "") as Address | "";
 
+/**
+ * VladLaunchRouter — launches and buys in one transaction.
+ *
+ * Required for an opening buy: `LiquidityLauncher.multicall` is nonpayable and only
+ * dispatches its own functions, so ETH cannot ride along with a launch and no swap can
+ * be folded into it. Buying in a second transaction leaves a block for a bot to land in
+ * first, on the creator's own launch.
+ */
+export const LAUNCH_ROUTER = (process.env.NEXT_PUBLIC_ROUTER ?? "") as Address | "";
+
+export const ROUTER_ABI = [
+  {
+    type: "function",
+    name: "launchAndBuy",
+    stateMutability: "payable",
+    inputs: [
+      { name: "launcherCalls", type: "bytes[]" },
+      {
+        name: "key",
+        type: "tuple",
+        components: [
+          { name: "currency0", type: "address" },
+          { name: "currency1", type: "address" },
+          { name: "fee", type: "uint24" },
+          { name: "tickSpacing", type: "int24" },
+          { name: "hooks", type: "address" },
+        ],
+      },
+      { name: "minOut", type: "uint256" },
+    ],
+    outputs: [{ name: "tokensOut", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "launchOnly",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "launcherCalls", type: "bytes[]" }],
+    outputs: [],
+  },
+] as const;
+
+/** The PoolKey the launch is about to create. currency0 is always native ETH. */
+export function poolKeyFor(token: Address, fee: number, hooks: Address) {
+  return {
+    currency0: ZERO_ADDRESS,
+    currency1: token,
+    fee,
+    tickSpacing: GEOMETRY.tickSpacing,
+    hooks,
+  } as const;
+}
+
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
 
 /**

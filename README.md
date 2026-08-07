@@ -68,7 +68,8 @@ contracts/          Foundry project
   src/              the three contracts above
   test/             fork tests against live Robinhood Chain state
   script/Deploy     deploys all three, wired together
-web/                Next.js 16 app — explore, board, token pages, launch wizard, claim
+web/                Next.js 16 app — explore, board, token pages, launch wizard,
+                    creator claim, treasury view
 ```
 
 ## Running it
@@ -86,6 +87,16 @@ cd web && pnpm install && pnpm dev
 Copy `web/.env.example` to `web/.env.local` and fill it in. There is no private key in it,
 and there should never be one: launches are signed by the visitor's own wallet in the
 browser, so the server holds nothing worth stealing.
+
+### Fees, and who can touch them
+
+`VladFeeSplit` has no owner, no admin function and no withdrawal. The treasury address is
+set once at deploy time and cannot be changed afterwards.
+
+Claiming is permissionless: anyone may call it, and it always pays the same two addresses
+— 75% to the launch's creator, 25% to the treasury — in the same transaction. `/claim`
+does this for a creator's own launches, `/admin` does it across all of them. Neither page
+has an ability the chain does not already give every wallet.
 
 ### Deploying
 

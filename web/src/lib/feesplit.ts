@@ -83,6 +83,13 @@ export type LaunchRow = {
 
 export const CREATOR_SHARE_BPS = 7500;
 
+/**
+ * Where the protocol's 25% lands. Set at deploy time and immutable in the contract —
+ * this constant only decides whose wallet the admin view unlocks for, and getting it
+ * wrong hides a page rather than misdirecting any money.
+ */
+export const TREASURY = (process.env.NEXT_PUBLIC_TREASURY ?? "") as Address | "";
+
 /** Standalone event items so viem can type `getLogs` args instead of erasing them. */
 export const REGISTERED_EVENT = parseAbiItem(
   "event Registered(uint256 indexed tokenId, address indexed creator, address indexed token)",

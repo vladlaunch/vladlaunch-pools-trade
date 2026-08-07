@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { decodeEventLog, type Address } from "viem";
 import {
@@ -22,6 +22,9 @@ import {
   DYNAMIC_FEE_FLAG,
   MAX_FEE,
   ZERO_ADDRESS,
+  LAUNCH_ROUTER,
+  ROUTER_ABI,
+  poolKeyFor,
   graffitiFor,
   encodeMetadata,
   buildConfigData,
@@ -33,7 +36,7 @@ import {
 import { ConnectButton } from "./ConnectButton";
 import { ImageUpload, type PinnedImage } from "./ImageUpload";
 import { robinhoodChain } from "@/lib/chain";
-import { usd } from "@/lib/format";
+import { usd, compact } from "@/lib/format";
 
 /* Four steps because there are genuinely four decisions: what the token is, who can
    find it, what it costs to trade, and whether to send it. Fee comes before the
@@ -55,7 +58,7 @@ const EMPTY: Draft = {
   website: "",
 };
 
-const STEPS = ["Identity", "Links", "Fee", "Review"] as const;
+const STEPS = ["Identity", "Links", "Fee", "First buy", "Review"] as const;
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -81,6 +84,9 @@ export function CreateWizard() {
   const [fee, setFee] = useState<number>(2500);
   const [customFee, setCustomFee] = useState("");
   const [hooks, setHooks] = useState("");
+  const [devBuyEth, setDevBuyEth] = useState("");
+  const [quote, setQuote] = useState<bigint | null>(null);
+  const [quoting, setQuoting] = useState(false);
   const [simError, setSimError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -108,6 +114,12 @@ export function CreateWizard() {
     if (hooks && !/^0x[a-fA-F0-9]{40}$/.test(hooks)) e.hooks = "That isn't a contract address.";
     const s = validateSettings(settings);
     if (s) e.fee = s;
+    if (devBuyEth) {
+      const n = Number(devBuyEth);
+      if (!Number.isFinite(n) || n < 0) e.devBuy = "Enter an amount in ETH, or leave it empty.";
+      else if (n > 0 && !LAUNCH_ROUTER)
+        e.devBuy = "This deployment has no router address set, so an opening buy is not available.";
+    }
     return e;
   }, [d, hooks, settings]);
 
@@ -115,8 +127,15 @@ export function CreateWizard() {
     !errors.name && !errors.symbol,
     !errors.xUrl,
     !errors.fee && !errors.hooks,
+    !errors.devBuy,
     Object.keys(errors).length === 0,
   ];
+
+  const devBuyWei = (() => {
+    const n = Number(devBuyEth);
+    if (!Number.isFinite(n) || n <= 0) return 0n;
+    return BigInt(Math.round(n * 1e18));
+  })();
 
   // CREATE2 means the token address is knowable before it exists. Showing it up front
   // is also the cheapest sanity check that the factory agrees with our arguments.
@@ -152,60 +171,133 @@ export function CreateWizard() {
     return null;
   }, [receipt]);
 
+  /** Build the two launcher calls. Shared by the quote and the real send. */
+  const buildCalls = useCallback(async () => {
+    if (!publicClient) return null;
+    // The launcher derives graffiti from ITS OWN caller — createToken takes no graffiti
+    // argument. Routing through the router therefore salts the token address with the
+    // router, not the creator, and predicting with the wrong one produces an address
+    // the launch never creates.
+    const salter = (devBuyWei > 0n ? LAUNCH_ROUTER : address) as Address;
+    const token = (await publicClient.readContract({
+      address: UERC20_FACTORY,
+      abi: UERC20_FACTORY_ABI,
+      functionName: "getUERC20Address",
+      args: [d.name, d.symbol, DECIMALS, LAUNCHER, graffitiFor(salter)],
+    })) as Address;
+
+    const tokenData = encodeMetadata({
+      description: d.description,
+      website: d.xUrl || d.website,
+      image: image?.uri ?? "",
+    });
+
+    const { encodeFunctionData } = await import("viem");
+    const createCall = encodeFunctionData({
+      abi: LAUNCHER_ABI,
+      functionName: "createToken",
+      args: [UERC20_FACTORY, d.name, d.symbol, DECIMALS, SUPPLY, LAUNCHER, tokenData],
+    });
+    const distributeCall = encodeFunctionData({
+      abi: LAUNCHER_ABI,
+      functionName: "distributeToken",
+      args: [
+        token,
+        {
+          strategy: CUSTOM_STRATEGY,
+          amount: SUPPLY,
+          configData: buildConfigData(CUSTOM_STRATEGY, settings),
+        },
+        launchSalt(address!, d.symbol),
+      ],
+    });
+
+    return { token, calls: [createCall, distributeCall] as `0x${string}`[] };
+  }, [publicClient, address, d, image, settings, devBuyWei]);
+
+  /**
+   * Ask the chain what the opening buy would return. Simulating the real call is exact
+   * — no client-side curve maths to drift out of sync with the contract — and it is
+   * also a full dry run of the launch, so a launch that would revert says so here.
+   */
+  const runQuote = useCallback(async () => {
+    if (!publicClient || !address || devBuyWei === 0n || !LAUNCH_ROUTER) {
+      setQuote(null);
+      return;
+    }
+    setQuoting(true);
+    setSimError(null);
+    try {
+      const built = await buildCalls();
+      if (!built) return;
+      const { result } = await publicClient.simulateContract({
+        address: LAUNCH_ROUTER,
+        abi: ROUTER_ABI,
+        functionName: "launchAndBuy",
+        args: [built.calls, poolKeyFor(built.token, fee, hooksAddr), 0n],
+        value: devBuyWei,
+        account: address,
+      });
+      setQuote(result as bigint);
+    } catch (err) {
+      setQuote(null);
+      setSimError(
+        err instanceof Error ? err.message.split("\n")[0].slice(0, 200) : "Quote failed.",
+      );
+    } finally {
+      setQuoting(false);
+    }
+  }, [publicClient, address, devBuyWei, buildCalls, fee, hooksAddr]);
+
   async function launch() {
     if (!address || !publicClient) return;
     setBusy(true);
     setSimError(null);
     try {
-      const graffiti = graffitiFor(address);
-      const token = (await publicClient.readContract({
-        address: UERC20_FACTORY,
-        abi: UERC20_FACTORY_ABI,
-        functionName: "getUERC20Address",
-        args: [d.name, d.symbol, DECIMALS, LAUNCHER, graffiti],
-      })) as Address;
+      const built = await buildCalls();
+      if (!built) return;
 
-      const tokenData = encodeMetadata({
-        description: d.description,
-        website: d.xUrl || d.website,
-        image: image?.uri ?? "",
-      });
+      if (devBuyWei > 0n) {
+        if (!LAUNCH_ROUTER) throw new Error("No router configured for the opening buy.");
+        const key = poolKeyFor(built.token, fee, hooksAddr);
 
-      const { encodeFunctionData } = await import("viem");
-      const createCall = encodeFunctionData({
-        abi: LAUNCHER_ABI,
-        functionName: "createToken",
-        args: [UERC20_FACTORY, d.name, d.symbol, DECIMALS, SUPPLY, LAUNCHER, tokenData],
-      });
-      const distributeCall = encodeFunctionData({
-        abi: LAUNCHER_ABI,
-        functionName: "distributeToken",
-        args: [
-          token,
-          {
-            strategy: CUSTOM_STRATEGY,
-            amount: SUPPLY,
-            configData: buildConfigData(CUSTOM_STRATEGY, settings),
-          },
-          launchSalt(address, d.symbol),
-        ],
-      });
+        // Simulate to learn the exact output, then require 99% of it. The launch and the
+        // buy are one transaction so nothing can trade in between, but a slippage floor
+        // still catches a pool that did not open the way we expected.
+        const { result } = await publicClient.simulateContract({
+          address: LAUNCH_ROUTER,
+          abi: ROUTER_ABI,
+          functionName: "launchAndBuy",
+          args: [built.calls, key, 0n],
+          value: devBuyWei,
+          account: address,
+        });
+        const minOut = ((result as bigint) * 99n) / 100n;
 
-      // Simulate first. A revert here costs nothing; a revert on-chain costs gas and
-      // leaves the creator staring at a wallet error with no explanation.
+        const hash = await writeContractAsync({
+          address: LAUNCH_ROUTER,
+          abi: ROUTER_ABI,
+          functionName: "launchAndBuy",
+          args: [built.calls, key, minOut],
+          value: devBuyWei,
+        });
+        setTxHash(hash);
+        return;
+      }
+
+      // No opening buy: talk to the launcher directly and skip the router entirely.
       await publicClient.simulateContract({
         address: LAUNCHER,
         abi: LAUNCHER_ABI,
         functionName: "multicall",
-        args: [[createCall, distributeCall]],
+        args: [built.calls],
         account: address,
       });
-
       const hash = await writeContractAsync({
         address: LAUNCHER,
         abi: LAUNCHER_ABI,
         functionName: "multicall",
-        args: [[createCall, distributeCall]],
+        args: [built.calls],
       });
       setTxHash(hash);
     } catch (err) {
@@ -433,6 +525,72 @@ export function CreateWizard() {
 
         {step === 3 && (
           <div className="flex flex-col gap-5">
+            <Field
+              label="Your opening buy (ETH)"
+              hint="Spent in the same transaction as the launch, before the pool is open to anyone else. Leave it empty to buy nothing."
+            >
+              <input
+                className={`${inputCls} num`}
+                value={devBuyEth}
+                onChange={(e) => {
+                  setDevBuyEth(e.target.value);
+                  setQuote(null);
+                }}
+                placeholder="0.0"
+                inputMode="decimal"
+              />
+            </Field>
+            {errors.devBuy && <p className="-mt-3 text-[12px] text-down">{errors.devBuy}</p>}
+
+            <p className="-mt-2 text-[12px] leading-relaxed text-ink-dim">
+              There is no block between the launch and this buy, so no bot can get in
+              first. That is the only reason it goes through a router at all.
+            </p>
+
+            {devBuyWei > 0n && (
+              <div className="rounded-lg border border-line bg-panel/50 p-4">
+                {!isConnected ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-[13px] text-ink-dim">
+                      Connect a wallet to price the buy.
+                    </span>
+                    <ConnectButton />
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={runQuote}
+                      disabled={quoting}
+                      className="rounded-full border border-line px-3.5 py-1.5 text-[12px] text-ink transition-colors hover:border-mint hover:text-mint disabled:opacity-50"
+                    >
+                      {quoting ? "Asking the chain…" : quote == null ? "Price this buy" : "Re-price"}
+                    </button>
+
+                    {quote != null && (
+                      <div className="mt-4">
+                        <div className="num text-2xl text-ink">
+                          {compact(Number(quote) / 1e18)} ${d.symbol || "TOKEN"}
+                        </div>
+                        <div className="num mt-1 text-[13px] text-mint">
+                          {((Number(quote) / 1e18 / 1_000_000_000) * 100).toFixed(2)}% of supply
+                        </div>
+                        <p className="mt-3 text-[12px] leading-relaxed text-ink-dim">
+                          Simulated against the live chain, not estimated. Buyers can see this
+                          transaction, and how much of the supply a creator opened with is the
+                          first thing anyone checks before sizing a position.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="flex flex-col gap-5">
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               {[
                 { k: "Name", v: d.name || "—" },
@@ -442,6 +600,10 @@ export function CreateWizard() {
                 { k: "Quote asset", v: "ETH" },
                 { k: "Graduates at", v: `${usd(5_000_000)} FDV` },
                 { k: "LP position", v: "Locked, unpullable" },
+                {
+                  k: "Opening buy",
+                  v: devBuyWei > 0n ? `${devBuyEth} ETH` : "None",
+                },
                 { k: "Hook", v: hooksAddr === ZERO_ADDRESS ? "None" : hooks },
               ].map((r) => (
                 <div key={r.k} className="border-b border-line/50 pb-2">
@@ -462,10 +624,6 @@ export function CreateWizard() {
               </div>
             )}
 
-            <p className="text-[12px] leading-relaxed text-ink-faint">
-              There is no opening buy in this transaction — the launcher mints and pools in one
-              call and has no swap step. Buy like everyone else once the pool is open.
-            </p>
 
             {simError && (
               <div className="rounded-lg border border-down/40 bg-down/5 p-4">
@@ -489,7 +647,7 @@ export function CreateWizard() {
             ) : (
               <button
                 onClick={launch}
-                disabled={!stepValid[3] || busy || mining || Boolean(txHash)}
+                disabled={!stepValid[4] || busy || mining || Boolean(txHash)}
                 className="self-start rounded-full bg-mint px-6 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-mint-dim disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
               >
                 {busy
