@@ -1,7 +1,7 @@
 import { CreateWizard } from "@/components/CreateWizard";
 
 export const metadata = {
-  title: "Launch a token — VladLaunch",
+  title: "Launch a token",
   description: "Set up a bonding-curve launch on Robinhood Chain.",
 };
 

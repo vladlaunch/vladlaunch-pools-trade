@@ -24,10 +24,55 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "Every token on Robinhood Chain starts at zero and climbs to fifty thousand. VladLaunch shows you where each one is on the way up, what its pool charges, and who holds the liquidity.";
+
 export const metadata: Metadata = {
-  title: "VladLaunch",
-  description:
-    "Every token on Robinhood Chain starts at zero and climbs to fifty thousand. VladLaunch shows you where each one is on the way up, what its pool charges, and who holds the liquidity.",
+  /**
+   * Without a metadataBase, Next resolves Open Graph and Twitter image paths against
+   * localhost at build time, so every link shared anywhere renders with no card. The
+   * env var lets a Vercel preview deployment advertise its own URL instead of claiming
+   * to be production — otherwise a preview's cards point at the live site.
+   */
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "https://vladlaunch.fun"),
+  ),
+  title: {
+    default: "VladLaunch — launch and trade on Robinhood Chain",
+    // Page titles supply only their own name; the brand is appended here once.
+    template: "%s — VladLaunch",
+  },
+  description: DESCRIPTION,
+  applicationName: "VladLaunch",
+  keywords: [
+    "Robinhood Chain",
+    "launchpad",
+    "Uniswap v4",
+    "bonding curve",
+    "token launch",
+    "RHC 4663",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "VladLaunch",
+    url: "/",
+    title: "VladLaunch — launch and trade on Robinhood Chain",
+    description: DESCRIPTION,
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "VladLaunch" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@vladlaunch",
+    creator: "@vladlaunch",
+    title: "VladLaunch — launch and trade on Robinhood Chain",
+    description: DESCRIPTION,
+    images: ["/opengraph-image"],
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

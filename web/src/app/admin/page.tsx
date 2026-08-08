@@ -2,7 +2,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { FEE_SPLIT } from "@/lib/launchpad";
 
 export const metadata = {
-  title: "Treasury — VladLaunch",
+  title: "Treasury",
   description: "Protocol fee earnings across every launch.",
   robots: { index: false, follow: false },
 };

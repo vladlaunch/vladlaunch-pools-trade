@@ -4,7 +4,7 @@ import { Board } from "@/components/Board";
 export const revalidate = 10;
 
 export const metadata = {
-  title: "Board — VladLaunch",
+  title: "Board",
   description: "Every live Robinhood Chain launch in one sortable table.",
 };
 

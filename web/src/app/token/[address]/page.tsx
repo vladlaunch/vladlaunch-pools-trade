@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   fetchLaunch,
@@ -288,6 +289,37 @@ function AuctionView({ auction: a, meta }: { auction: Auction; meta: OnChainMeta
       </div>
     </div>
   );
+}
+
+/**
+ * A token page is the link people actually paste into a reply, so it is the one page
+ * whose card must not be generic. Everything here comes from the feed row we already
+ * fetch; a failure falls back to the address rather than to an empty title, because a
+ * card reading "undefined" is worse than a plain one.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ address: string }>;
+}): Promise<Metadata> {
+  const { address } = await params;
+  const launch = await fetchLaunch(address).catch(() => null);
+  if (!launch) return { title: short(address, 6, 6), robots: { index: false, follow: true } };
+
+  const climbed = hasGraduated(launch)
+    ? "Graduated out of the curve."
+    : `${progressPct(launch.graduationProgress).toFixed(0)}% of the way to ${usd(graduationThresholdUsd(launch))}.`;
+
+  const title = `${launch.tokenName} ($${launch.tokenSymbol})`;
+  const description = `${climbed} ${usd(launch.fdvUsd)} FDV, ${compact(launch.holderCount ?? 0)} holders. See what its pool charges and who holds the liquidity.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/token/${address}` },
+    openGraph: { title: `${title} — VladLaunch`, description, url: `/token/${address}` },
+    twitter: { card: "summary_large_image", title: `${title} — VladLaunch`, description },
+  };
 }
 
 export default async function TokenPage({ params }: { params: Promise<{ address: string }> }) {

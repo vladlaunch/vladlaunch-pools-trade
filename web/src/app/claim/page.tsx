@@ -2,7 +2,7 @@ import { ClaimPanel } from "@/components/ClaimPanel";
 import { FEE_SPLIT } from "@/lib/launchpad";
 
 export const metadata = {
-  title: "Claim fees — VladLaunch",
+  title: "Claim fees",
   description: "Collect the trading fees your launches have earned.",
 };
 

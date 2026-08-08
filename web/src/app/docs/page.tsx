@@ -6,7 +6,7 @@ import { CopyAddress } from "@/components/CopyAddress";
 import { FEE_PRESETS } from "@/lib/launchpad";
 
 export const metadata: Metadata = {
-  title: "Docs — VladLaunch",
+  title: "Docs",
   description:
     "How a VladLaunch token works: the pool fee you choose, the 75/25 fee split, why the liquidity has no route out, and the exact commands to check all of it against Robinhood Chain yourself.",
 };
