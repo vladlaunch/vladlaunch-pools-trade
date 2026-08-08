@@ -44,16 +44,29 @@ const MAX_PROGRESS = 100;
 const LOG_MIN = Math.log10(MIN_PROGRESS);
 const LOG_MAX = Math.log10(MAX_PROGRESS);
 
+/**
+ * SVG coordinates are rounded before they reach the DOM.
+ *
+ * A raw float carries up to 16 significant digits, and React serialises it to HTML on
+ * the server and recomputes it in the browser — the two disagree on the last digit
+ * (95.0526324335222 vs 95.05263243352215) and React reports a hydration mismatch it
+ * explicitly cannot patch. Two decimals is finer than a pixel at any viewport, so
+ * nothing is lost but the disagreement.
+ */
+function px(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
 function xFor(g: Geo, ageMinutes: number) {
   const a = Math.min(Math.max(ageMinutes, MIN_AGE_MIN), MAX_AGE_MIN);
   const t = (Math.log(a) - Math.log(MIN_AGE_MIN)) / (Math.log(MAX_AGE_MIN) - Math.log(MIN_AGE_MIN));
-  return g.PAD.l + t * (g.W - g.PAD.l - g.PAD.r);
+  return px(g.PAD.l + t * (g.W - g.PAD.l - g.PAD.r));
 }
 
 function yFor(g: Geo, progressPct: number) {
   const p = Math.min(Math.max(progressPct, MIN_PROGRESS), MAX_PROGRESS);
   const t = (Math.log10(p) - LOG_MIN) / (LOG_MAX - LOG_MIN);
-  return g.H - g.PAD.b - t * (g.H - g.PAD.t - g.PAD.b);
+  return px(g.H - g.PAD.b - t * (g.H - g.PAD.t - g.PAD.b));
 }
 
 type Dot = { l: Launch; x: number; y: number; r: number; glow: number };
@@ -87,8 +100,8 @@ export function Climb({ launches, now }: { launches: Launch[]; now: number }) {
         l,
         x: xFor(g, ageMin),
         y,
-        r: (g === NARROW ? 2 : 3) + (g === NARROW ? 9 : 13) * Math.sqrt(l.holderCount / maxHolders),
-        glow: Math.max(0, (t - 0.45) / 0.55),
+        r: px((g === NARROW ? 2 : 3) + (g === NARROW ? 9 : 13) * Math.sqrt(l.holderCount / maxHolders)),
+        glow: px(Math.max(0, (t - 0.45) / 0.55)),
       };
     });
     return {

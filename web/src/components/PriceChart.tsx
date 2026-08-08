@@ -8,6 +8,11 @@ import { price } from "@/lib/format";
    tokens are hours old and the interesting question is "is it up", three of those four
    are noise. The band shows the high–low envelope so volatility is still visible. */
 
+/** Same rounding as Climb, for the same reason: raw floats hydrate inconsistently. */
+function px(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
 const W = 900;
 const H = 300;
 const PAD = { l: 8, r: 62, t: 16, b: 22 };
@@ -22,8 +27,8 @@ export function PriceChart({ candles }: { candles: Candle[] }) {
     const lo = Math.min(...rows.map((c) => c.low || c.close));
     const hi = Math.max(...rows.map((c) => c.high || c.close));
     const span = hi - lo || hi || 1;
-    const x = (i: number) => PAD.l + (i / (rows.length - 1)) * (W - PAD.l - PAD.r);
-    const y = (v: number) => PAD.t + (1 - (v - lo) / span) * (H - PAD.t - PAD.b);
+    const x = (i: number) => px(PAD.l + (i / (rows.length - 1)) * (W - PAD.l - PAD.r));
+    const y = (v: number) => px(PAD.t + (1 - (v - lo) / span) * (H - PAD.t - PAD.b));
 
     const line = rows.map((c, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(c.close)}`).join(" ");
     const area = `${line} L${x(rows.length - 1)},${H - PAD.b} L${x(0)},${H - PAD.b} Z`;
@@ -66,8 +71,9 @@ export function PriceChart({ candles }: { candles: Candle[] }) {
       onMouseLeave={() => setHover(null)}
       onMouseMove={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        const px = ((e.clientX - rect.left) / rect.width) * W;
-        const t = (px - PAD.l) / (W - PAD.l - PAD.r);
+        // Named for what it is, and not `px` — that shadows the rounding helper above.
+        const localX = ((e.clientX - rect.left) / rect.width) * W;
+        const t = (localX - PAD.l) / (W - PAD.l - PAD.r);
         setHover(Math.max(0, Math.min(rows.length - 1, Math.round(t * (rows.length - 1)))));
       }}
       role="img"
