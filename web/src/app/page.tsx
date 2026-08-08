@@ -49,8 +49,19 @@ export default async function HomePage() {
   const totalHolders = launches.reduce((s, l) => s + (l.holderCount || 0), 0);
   const nearCount = launches.filter(isNearGraduation).length;
 
+  // Market breadth: how many of the tokens on the feed are up over 24 hours. It drives
+  // which way the aurora leans, and it is printed below so the light is readable rather
+  // than merely pretty — an unlabelled glow that moves is decoration in a data costume.
+  const upCount = launches.filter((l) => l.poolStats.priceChange24hPct > 0).length;
+  const breadth = launches.length ? upCount / launches.length : 0.5;
+
   return (
     <>
+      <div
+        className="aurora-tilt"
+        style={{ "--breadth": breadth.toFixed(3) } as React.CSSProperties}
+        aria-hidden
+      />
       <Climb launches={launches} now={now} />
 
       {/* The three numbers that describe the whole market, stated plainly. */}
@@ -68,6 +79,13 @@ export default async function HomePage() {
             </div>
           ))}
         </dl>
+        <p className="mt-3 text-[12px] leading-relaxed text-ink-faint">
+          <span className="num text-ink-dim">
+            {upCount} of {launches.length}
+          </span>{" "}
+          are up over 24 hours. The light along the bottom of the page leans toward
+          whichever side is buying.
+        </p>
       </section>
 
       {/* Trending strip — horizontal, because it is a ranking and rankings read across. */}

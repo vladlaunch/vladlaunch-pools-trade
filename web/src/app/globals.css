@@ -133,6 +133,11 @@ body {
   .aurora::after {
     animation: none;
   }
+  /* The tilt is a position, not a loop, so it stays — but it should not slide when the
+     breadth changes on a revalidate. */
+  .aurora-tilt {
+    transition: none;
+  }
   * {
     scroll-behavior: auto !important;
   }
@@ -164,6 +169,48 @@ body {
 
 .hairline {
   border-color: rgba(31, 53, 53, 0.9);
+}
+
+/* --- CLIMB GLOW ----------------------------------------------------------
+   A card's glow is its altitude. `--climb` is the token's real progress toward
+   graduation, 0 to 1, set inline from the data — so the brightest cards on a screen
+   are the ones closest to getting out of the curve, and a dim card is dim because it
+   has not moved. Nothing here is set for looks.
+
+   The curve is quadratic: the bottom 60% of the climb stays visually flat, because a
+   token at 3% and a token at 6% are the same story and should not look different.
+------------------------------------------------------------------------- */
+.card-climb {
+  --climb: 0;
+  box-shadow: 0 0 calc(var(--climb) * 34px) calc(var(--climb) * -6px)
+    rgba(0, 255, 194, calc(var(--climb) * 0.55));
+}
+
+.card-climb:hover {
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 194, calc(0.08 + var(--climb) * 0.25)),
+    0 18px 46px -22px rgba(0, 255, 194, calc(0.5 + var(--climb) * 0.4));
+}
+
+/* --- AURORA TILT ---------------------------------------------------------
+   An extra bloom over the base aurora, positioned by `--breadth`: 0 when nothing is
+   up over 24h, 1 when everything is. The light leans toward the side that is buying.
+
+   This only earns its place because the page states the number it is drawn from. An
+   unlabelled glow that moves is decoration wearing a data costume.
+------------------------------------------------------------------------- */
+.aurora-tilt {
+  --breadth: 0.5;
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: radial-gradient(
+    55% 42% at calc(12% + var(--breadth) * 76%) 104%,
+    rgba(0, 255, 194, calc(0.05 + var(--breadth) * 0.12)) 0%,
+    transparent 64%
+  );
+  transition: background 1.2s var(--ease-out-soft);
 }
 
 /* Ghost cards — the reference dims the cards at the edge of the field instead

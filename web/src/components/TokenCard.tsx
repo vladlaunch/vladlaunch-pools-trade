@@ -51,13 +51,27 @@ export function CurveBar({ progress, graduated }: { progress: number; graduated?
   );
 }
 
+/**
+ * How brightly a card burns is how far up the curve it is.
+ *
+ * Squared on purpose: linear intensity made a token at 3% and one at 6% look
+ * meaningfully different when they are the same story, and left nothing in reserve for
+ * the few that are actually close. Squaring keeps the bottom of the field flat and
+ * spends the range where it carries information.
+ */
+function climbIntensity(progress: number) {
+  const t = Math.min(Math.max(progress, 0), 100) / 100;
+  return Number((t * t).toFixed(3));
+}
+
 /** `now` is threaded from the server render — see lib/format.ts `age`. */
 export function TokenCard({ l, now }: { l: Launch; now: number }) {
   const up = l.poolStats.priceChange24hPct >= 0;
   return (
     <Link
       href={`/token/${l.tokenAddress}`}
-      className="card card-lift group flex flex-col gap-4 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
+      style={{ "--climb": climbIntensity(l.graduationProgress) } as React.CSSProperties}
+      className="card card-lift card-climb group flex flex-col gap-4 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
     >
       <div className="flex items-start gap-3">
         <Avatar l={l} />
