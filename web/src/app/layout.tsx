@@ -27,7 +27,7 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "VladLaunch",
   description:
-    "Every token on Robinhood Chain starts at zero and climbs to five million. VladLaunch shows you where each one is on the way up, what its pool charges, and who holds the liquidity.",
+    "Every token on Robinhood Chain starts at zero and climbs to fifty thousand. VladLaunch shows you where each one is on the way up, what its pool charges, and who holds the liquidity.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -54,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <a href="/" className="text-ink-dim transition-colors hover:text-mint">Explore</a>
                 <a href="/board" className="text-ink-dim transition-colors hover:text-mint">Board</a>
                 <a href="/create" className="text-ink-dim transition-colors hover:text-mint">Create</a>
+                <a href="/docs" className="text-ink-dim transition-colors hover:text-mint">Docs</a>
               </div>
               <div className="flex flex-col gap-2">
                 <span className="label">Elsewhere</span>

@@ -6,9 +6,13 @@ import { useEffect, useState } from "react";
 import { Mark } from "./Mark";
 import { ConnectButton } from "./ConnectButton";
 
+/* Ordered by how many people the destination serves. Claim is last because it is only
+   useful to someone who has already launched, and on a narrow phone the row scrolls —
+   whatever ends up off the edge should be the thing fewest readers are looking for. */
 const LINKS = [
   { href: "/", label: "Explore" },
   { href: "/board", label: "Board" },
+  { href: "/docs", label: "Docs" },
   { href: "/create", label: "Create" },
   { href: "/claim", label: "Claim" },
 ];
@@ -80,8 +84,10 @@ export function Nav() {
 
         {/* Four labels plus a Connect button did not fit a 375px phone — the whole page
             scrolled sideways to 415px. They are tighter below sm, and the row itself
-            scrolls as the floor so nothing spills onto the page at 320px either. */}
-        <div className="no-scrollbar -mx-1 flex min-w-0 items-center gap-0.5 overflow-x-auto px-1 sm:mx-0 sm:gap-1 sm:px-0">
+            scrolls as the floor so nothing spills onto the page at 320px either. The
+            mask is the honest signal that the row scrolls; without it a half-cut label
+            reads as a rendering bug rather than as more content. */}
+        <div className="no-scrollbar marquee-edge -mx-1 flex min-w-0 items-center gap-0.5 overflow-x-auto px-1 sm:mx-0 sm:gap-1 sm:px-0">
           {LINKS.map((l) => {
             const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
             return (

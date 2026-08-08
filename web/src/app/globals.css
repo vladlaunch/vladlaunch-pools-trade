@@ -336,3 +336,34 @@ body {
 .board-table tbody tr:hover td:first-child {
   background: var(--color-panel-hi);
 }
+
+/* --- RECEIPT -------------------------------------------------------------
+   The docs page's one structural device: a citation rule down the left of every
+   piece of evidence. A hairline in mint rather than a full bordered box, because
+   the evidence should read as an annotation to the claim above it, not as a
+   second, competing block.
+------------------------------------------------------------------------- */
+.receipt {
+  border-left: 2px solid rgba(0, 255, 194, 0.34);
+}
+
+/* Anchors sit under a 64px sticky header, so a jump would otherwise land with the
+   heading hidden behind it. */
+.docs-section {
+  scroll-margin-top: 84px;
+}
+
+/* Fades only the right edge of a scrollable row, unlike `.marquee-mask`, which fades
+   both. A nav starts at its first item and never scrolls left of it, so a left fade
+   would dim the active tab for no reason. */
+.marquee-edge {
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+
+@media (min-width: 640px) {
+  .marquee-edge {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
