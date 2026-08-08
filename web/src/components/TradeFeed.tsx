@@ -72,7 +72,7 @@ export function TradeFeed({
 
   return (
     <div className="card overflow-hidden">
-      <div className="flex items-center gap-1 border-b border-line/70 px-3 py-2">
+      <div className="flex min-w-0 items-center gap-1 border-b border-line/70 px-3 py-2">
         {(["trades", "traders"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -85,13 +85,16 @@ export function TradeFeed({
             {t === "traders" ? "Top traders" : "Live trades"}
           </button>
         ))}
-        <span className="num ml-auto flex items-center gap-1.5 pr-2 text-[11px] text-muted">
+        <span className="num ml-auto flex shrink-0 items-center gap-1.5 pr-2 text-[11px] text-muted">
           <span className="live-dot inline-block size-1.5 rounded-full bg-mint" />
           live
         </span>
       </div>
 
-      <div className="thin-scroll max-h-[520px] overflow-y-auto">
+      {/* Five columns do not fit a 360px phone, and squeezing them would mean dropping
+          a column that a trader actually reads. The table keeps its columns and scrolls
+          sideways inside this box instead — the page itself never does. */}
+      <div className="thin-scroll max-h-[520px] overflow-x-auto overflow-y-auto">
         {tab === "trades" ? (
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-panel/95 backdrop-blur">

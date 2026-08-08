@@ -447,8 +447,11 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
         </p>
       )}
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_340px]">
-        <div className="flex flex-col gap-5">
+      {/* min-w-0 on the columns, not minmax(0,1fr) on the track: below lg this grid has
+          no explicit columns at all, so the implicit track floors at the item's
+          min-content — the trades table — and dragged a 360px phone out to 362px. */}
+      <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-5">
           <div className="card p-4">
             <PriceChart candles={candles} />
           </div>

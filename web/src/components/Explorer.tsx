@@ -56,7 +56,7 @@ export function Explorer({ launches, now }: { launches: Launch[]; now: number })
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search name, ticker, or address"
-            className="h-10 w-full rounded-full border border-line bg-panel/60 px-4 text-sm text-ink placeholder:text-ink-faint focus:border-mint/60 focus:outline-none"
+            className="h-10 w-full rounded-full border border-line bg-panel/60 px-4 text-base text-ink placeholder:text-ink-faint focus:border-mint/60 focus:outline-none sm:text-sm"
           />
         </label>
       </div>

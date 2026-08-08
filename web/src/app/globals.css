@@ -310,3 +310,29 @@ body {
 .rise {
   animation: rise 0.6s var(--ease-out-soft) both;
 }
+
+/* The board carries twelve columns and a phone shows about three of them. Scrolling
+   right without a pinned first column loses which row you are reading — the one thing
+   a table is for. The pinned cell needs a solid fill, not the card's translucent
+   gradient, or the columns sliding underneath show straight through it. */
+.board-table th:first-child,
+.board-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--color-panel);
+}
+
+.board-table th:first-child {
+  z-index: 20;
+}
+
+.board-table td:first-child {
+  z-index: 10;
+  /* Stands in for the cell border, which sticky positioning drags out of alignment. */
+  box-shadow: 1px 0 0 rgba(31, 53, 53, 0.9);
+}
+
+/* The row hover cannot reach through an opaque cell, so it is restated here. */
+.board-table tbody tr:hover td:first-child {
+  background: var(--color-panel-hi);
+}

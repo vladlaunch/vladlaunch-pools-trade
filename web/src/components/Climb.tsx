@@ -131,8 +131,8 @@ export function Climb({ launches, now }: { launches: Launch[]; now: number }) {
   return (
     <section className="relative mx-auto w-full max-w-[1400px] px-5 pt-10 sm:px-8 sm:pt-16">
       <div className="hero-halo" aria-hidden />
-      <div className="relative z-10 grid gap-10 lg:grid-cols-[1fr_280px] lg:gap-14">
-        <div>
+      <div className="relative z-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-14">
+        <div className="min-w-0">
           <h1 className="display max-w-[15ch] text-[clamp(2.75rem,7vw,5.25rem)] text-ink">
             Every token starts at zero and climbs to{" "}
             <span className="text-mint">{usd(target)}</span>.

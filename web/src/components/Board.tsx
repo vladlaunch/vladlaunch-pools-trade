@@ -103,13 +103,13 @@ export function Board({ launches, now }: { launches: Launch[]; now: number }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Filter rows"
-            className="h-9 w-full rounded-full border border-line bg-panel/60 px-4 text-sm text-ink placeholder:text-ink-faint focus:border-mint/60 focus:outline-none"
+            className="h-9 w-full rounded-full border border-line bg-panel/60 px-4 text-base text-ink placeholder:text-ink-faint focus:border-mint/60 focus:outline-none sm:h-9 sm:text-sm"
           />
         </label>
       </div>
 
       <div className="thin-scroll card mt-5 overflow-x-auto">
-        <table className="w-full min-w-[820px] border-collapse text-sm">
+        <table className="board-table w-full min-w-[820px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line/80">
               {COLS.map((c) => {

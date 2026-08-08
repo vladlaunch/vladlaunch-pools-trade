@@ -71,8 +71,14 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
+/**
+ * text-base below sm is a functional requirement, not a taste call: Safari on iOS zooms
+ * the whole page in when a focused field is under 16px, and it does not zoom back out.
+ * Every field on this site was 14px, so tapping any of them left the user zoomed into a
+ * form they then had to pinch their way out of.
+ */
 const inputCls =
-  "h-10 w-full rounded-lg border border-line bg-panel/60 px-3 text-sm text-ink placeholder:text-ink-faint focus:border-mint/60 focus:outline-none";
+  "h-10 w-full rounded-lg border border-line bg-panel/60 px-3 text-base text-ink placeholder:text-ink-faint focus:border-mint/60 focus:outline-none sm:text-sm";
 
 export function CreateWizard() {
   const router = useRouter();

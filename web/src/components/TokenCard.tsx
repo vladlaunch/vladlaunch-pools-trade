@@ -72,12 +72,21 @@ export function TokenCard({ l, now }: { l: Launch; now: number }) {
     <Link
       href={`/token/${l.tokenAddress}`}
       style={{ "--climb": climbIntensity(l.graduationProgress) } as React.CSSProperties}
-      className="card card-lift card-climb group flex flex-col gap-4 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
+      /* min-w-0 is load-bearing, not tidiness. A grid track is minmax(auto, 1fr), and
+         `auto` bottoms out at the item's min-content — which for this card is the full
+         un-wrapped token name. One long name ("ABOAR - Allegra Boar, the New Boar of X")
+         widened the track, the grid, the section, and finally the page, so a phone
+         scrolled sideways to 451px. Letting the item shrink to 0 stops the chain. */
+      className="card card-lift card-climb group flex min-w-0 flex-col gap-4 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
     >
       <div className="flex items-start gap-3">
         <Avatar l={l} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+          {/* min-w-0 has to repeat here: a flex item's default min-width is its content,
+              so without it this row refuses to shrink and `truncate` never fires — a name
+              like "ABOAR - Allegra Boar, the New Boar of X" pushed the whole page wide
+              enough to scroll sideways on a phone. */}
+          <div className="flex min-w-0 items-center gap-1.5">
             <span className="truncate text-[15px] leading-tight text-ink transition-colors group-hover:text-mint">
               {l.tokenName}
             </span>

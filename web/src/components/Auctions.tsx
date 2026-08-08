@@ -48,7 +48,9 @@ function AuctionCard({ a }: { a: Auction }) {
   return (
     <Link
       href={`/token/${a.tokenAddress}`}
-      className="card card-lift group flex flex-col gap-4 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
+      /* Same grid blowout as TokenCard: without min-w-0 the track floors at the card's
+         min-content and one long name drags the page wider than the phone. */
+      className="card card-lift group flex min-w-0 flex-col gap-4 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
     >
       <div className="flex items-start gap-3">
         {img ? (
