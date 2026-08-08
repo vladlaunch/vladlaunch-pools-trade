@@ -54,6 +54,25 @@ export const CUSTODY = {
 export const TOKEN_LAUNCHED_TOPIC =
   "0x3b3d2bafdcae274a232217e1f80ee4305d3af6aa25c8b14b1681bd68d18042a4";
 
+/**
+ * The only contracts whose `TokenLaunched` we treat as proof of custody.
+ *
+ * The event signature is public, so any contract can emit one naming any recipient.
+ * Accepting an unfiltered log would let a creator mint a green "liquidity is locked"
+ * badge for a token whose LP position is sitting in their own wallet — the badge would
+ * be worth exactly nothing, and worse than nothing, because people would trust it.
+ *
+ * Verified emitters, swept from the full history of the topic on 2026-08-08:
+ * the five official pools.trade strategies plus ours.
+ */
+export const TRUSTED_STRATEGIES: readonly string[] = [
+  "0x60D73b21cDf2EA846ab3d58699BBbb8F29d72491",
+  "0xcE57498D3474DCC244dFb6710fFbE6D4441cD2b2",
+  "0x9F67B864B565966dfCc2E0C6bA2483b2D5fF4b00",
+  "0x583a7903152b95831e82ffF534448Dee081754ec",
+  "0xD8861C07a590A1F1775faF9E7732aF3eabb5B114",
+];
+
 /** Measured 2026-08-07: 18,909 blocks in 1,893s. Used only to bracket a log scan. */
 export const BLOCK_TIME_MS = 100;
 

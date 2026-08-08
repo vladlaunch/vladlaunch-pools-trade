@@ -59,8 +59,9 @@ export function age(iso: string, now: number = Date.now()): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-export function since(ms: number): string {
-  const s = (Date.now() - ms) / 1000;
+/** `now` is a parameter for the same reason `age` takes one: hydration. */
+export function since(ms: number, now: number = Date.now()): string {
+  const s = (now - ms) / 1000;
   if (s < 60) return `${Math.max(1, Math.floor(s))}s`;
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;

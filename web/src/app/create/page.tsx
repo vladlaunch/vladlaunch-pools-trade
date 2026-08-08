@@ -53,8 +53,9 @@ export default function CreatePage() {
           <div className="card p-5">
             <div className="label">The fee is yours</div>
             <p className="mt-3 text-[13px] leading-relaxed text-ink-dim">
-              Swap fees from your pool accrue to you, claimable through a Fee Beneficiary NFT
-              minted to your wallet at launch. It is an NFT, so the claim can be sold or moved.
+              Swap fees from your pool accrue to you and are paid out whenever anyone
+              collects — 75% to you, 25% to the protocol, in the same transaction. Your
+              claim is recorded on-chain against your address, not issued as a token.
             </p>
             <p className="mt-3 text-[13px] leading-relaxed text-ink-dim">
               Pick the rate honestly. A high fee is charged to the people buying your token, and

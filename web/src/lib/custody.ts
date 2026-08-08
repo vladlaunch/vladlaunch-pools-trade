@@ -1,6 +1,12 @@
 import { createPublicClient, http, parseAbiParameters, decodeAbiParameters, type Hex } from "viem";
-import { robinhoodChain, CUSTODY, TOKEN_LAUNCHED_TOPIC, BLOCK_TIME_MS } from "./chain";
-import { FEE_SPLIT } from "./launchpad";
+import {
+  robinhoodChain,
+  CUSTODY,
+  TOKEN_LAUNCHED_TOPIC,
+  TRUSTED_STRATEGIES,
+  BLOCK_TIME_MS,
+} from "./chain";
+import { FEE_SPLIT, CUSTOM_STRATEGY } from "./launchpad";
 
 /**
  * Who ends up holding the LP position for a launch — the single fact that decides
@@ -65,8 +71,22 @@ export async function readCustody(tokenAddress: string, createdAtIso: string): P
       ],
     } as never);
 
-    const rows = logs as unknown as { topics: Hex[]; data: Hex }[];
-    if (!rows?.length) return { kind: "unknown", reason: "launch event not found in the scanned range" };
+    // Anyone can emit this event naming any recipient, so a log only counts as proof
+    // when a strategy we recognise emitted it. Without this check the green "locked"
+    // badge is forgeable by deploying a throwaway contract, and a forged badge is worse
+    // than no badge at all.
+    const trusted = new Set(
+      [...TRUSTED_STRATEGIES, CUSTOM_STRATEGY].filter(Boolean).map((a) => a.toLowerCase()),
+    );
+    const rows = (logs as unknown as { address: Hex; topics: Hex[]; data: Hex }[]).filter((l) =>
+      trusted.has(l.address.toLowerCase()),
+    );
+    if (!rows.length) {
+      return {
+        kind: "unknown",
+        reason: "no launch event from a recognised strategy in the scanned range",
+      };
+    }
 
     const log = rows[0];
     const holder = `0x${log.topics[3].slice(-40)}`;

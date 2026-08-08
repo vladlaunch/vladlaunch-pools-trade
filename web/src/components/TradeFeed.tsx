@@ -23,6 +23,14 @@ export function TradeFeed({
   const [trades, setTrades] = useState(initialTrades);
   const [traders, setTraders] = useState(initialTraders);
   const [seen, setSeen] = useState<Set<string>>(() => new Set(initialTrades.map(tradeKey)));
+  // Ages tick client-side only. Calling the clock during render makes the server HTML
+  // and the first client render disagree, which React reports as a hydration mismatch.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
 
   // Poll our own route, never the upstream API directly from the browser.
   useEffect(() => {
@@ -118,7 +126,7 @@ export function TradeFeed({
                     </a>
                   </td>
                   <td className="num px-3 py-2 text-right text-[13px] text-muted">
-                    {since(t.atMs)}
+                    {now == null ? "—" : since(t.atMs, now)}
                   </td>
                 </tr>
               ))}

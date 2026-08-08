@@ -122,7 +122,9 @@ export function CreateWizard() {
         e.devBuy = "This deployment has no router address set, so an opening buy is not available.";
     }
     return e;
-  }, [d, hooks, settings]);
+    // devBuyEth belongs here: without it the opening-buy checks never re-run and the
+    // cap silently does nothing.
+  }, [d, hooks, settings, devBuyEth]);
 
   const stepValid = [
     !errors.name && !errors.symbol,
@@ -189,7 +191,8 @@ export function CreateWizard() {
 
     const tokenData = encodeMetadata({
       description: d.description,
-      website: d.xUrl || d.website,
+      website: d.website,
+      xUrl: d.xUrl,
       image: image?.uri ?? "",
     });
 
@@ -307,7 +310,10 @@ export function CreateWizard() {
       setTxHash(hash);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setSimError(msg.split("\n")[0].slice(0, 220));
+      // A user closing their wallet is not a broken launch, and telling them it is
+      // sends them hunting for a problem that does not exist.
+      const rejected = /User rejected|denied transaction|User denied|rejected the request/i.test(msg);
+      setSimError(rejected ? "You closed the wallet before signing. Nothing was sent." : msg.split("\n")[0].slice(0, 220));
     } finally {
       setBusy(false);
     }
@@ -479,9 +485,16 @@ export function CreateWizard() {
                     className={`${inputCls} num h-9 w-28`}
                     value={customFee}
                     onChange={(e) => {
-                      setCustomFee(e.target.value);
-                      const pctVal = Number(e.target.value);
-                      if (Number.isFinite(pctVal)) setFee(Math.round(pctVal * 10_000));
+                      const raw = e.target.value;
+                      setCustomFee(raw);
+                      // Number("") is 0, which would quietly set a 0% pool. An empty box
+                      // means "no custom rate", so fall back to the standard one.
+                      if (raw.trim() === "") {
+                        setFee(2500);
+                        return;
+                      }
+                      const pctVal = Number(raw);
+                      if (Number.isFinite(pctVal) && pctVal > 0) setFee(Math.round(pctVal * 10_000));
                     }}
                     placeholder="%"
                     inputMode="decimal"
@@ -706,7 +719,7 @@ export function CreateWizard() {
             )}
           </div>
           <div className="num shrink-0 text-right">
-            <div className="text-[15px] text-ink">$1K</div>
+            <div className="text-[15px] text-ink-faint">—</div>
             <div className="text-[11px] text-muted">{feeLabel(fee)} fee</div>
           </div>
         </div>
