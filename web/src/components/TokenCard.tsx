@@ -32,7 +32,8 @@ export function CurveBar({ progress, graduated }: { progress: number; graduated?
   // Progress runs past 100 while a token waits for its migration tx, so the bar is
   // clamped but the label always reports the real number. Only `graduated` — which
   // comes from status, not from the bar — is allowed to claim the token is out.
-  const p = Math.min(Math.max(progress, 0), 100);
+  // progress is a multiple of the threshold: 1 means graduated.
+  const p = Math.min(Math.max(progress, 0), 1) * 100;
   const atLine = progress >= GRADUATION_FLOOR;
   return (
     <div className="flex items-center gap-2.5">
@@ -45,7 +46,7 @@ export function CurveBar({ progress, graduated }: { progress: number; graduated?
         />
       </div>
       <span className={`num text-[11px] ${atLine ? "text-mint" : "text-muted"}`}>
-        {graduated ? "out" : `${progress.toFixed(progress < 10 ? 1 : 0)}%`}
+        {graduated ? "out" : `${(progress * 100).toFixed(progress < 0.1 ? 1 : 0)}%`}
       </span>
     </div>
   );
@@ -60,7 +61,7 @@ export function CurveBar({ progress, graduated }: { progress: number; graduated?
  * spends the range where it carries information.
  */
 function climbIntensity(progress: number) {
-  const t = Math.min(Math.max(progress, 0), 100) / 100;
+  const t = Math.min(Math.max(progress, 0), 1);
   return Number((t * t).toFixed(3));
 }
 

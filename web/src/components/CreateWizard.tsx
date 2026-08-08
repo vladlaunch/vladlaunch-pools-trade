@@ -632,7 +632,7 @@ export function CreateWizard() {
                 { k: "Supply", v: "1,000,000,000" },
                 { k: "Swap fee", v: feeLabel(fee) },
                 { k: "Quote asset", v: "ETH" },
-                { k: "Graduates at", v: `${usd(5_000_000)} FDV` },
+                { k: "Graduates at", v: `${usd(50_000)} FDV` },
                 { k: "LP position", v: "Locked, unpullable" },
                 {
                   k: "Opening buy",

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Launch } from "@/lib/pools";
-import { graduationThresholdUsd } from "@/lib/pools";
+import { climbLabel, graduationThresholdUsd, hasGraduated } from "@/lib/pools";
 import { compact, usd, pct, age } from "@/lib/format";
 
 /* ============================================================================
@@ -39,8 +39,8 @@ const MAX_AGE_MIN = 60 * 24 * 30; // 30d ceiling keeps the log axis readable
  * onto one line and tells you nothing. Decades of FDV keep every token separable
  * while still showing, truthfully, how far the bottom is from the top.
  */
-const MIN_PROGRESS = 0.02; // 0.02% of the threshold = $1,000 FDV
-const MAX_PROGRESS = 100;
+const MIN_PROGRESS = 0.02; // 2% of the threshold = $1,000 FDV
+const MAX_PROGRESS = 100; // 100x the threshold = $5M FDV, the top of the field
 const LOG_MIN = Math.log10(MIN_PROGRESS);
 const LOG_MAX = Math.log10(MAX_PROGRESS);
 
@@ -63,8 +63,9 @@ function xFor(g: Geo, ageMinutes: number) {
   return px(g.PAD.l + t * (g.W - g.PAD.l - g.PAD.r));
 }
 
-function yFor(g: Geo, progressPct: number) {
-  const p = Math.min(Math.max(progressPct, MIN_PROGRESS), MAX_PROGRESS);
+/** `progress` is a multiple of the graduation threshold: 1 means graduated. */
+function yFor(g: Geo, progress: number) {
+  const p = Math.min(Math.max(progress, MIN_PROGRESS), MAX_PROGRESS);
   const t = (Math.log10(p) - LOG_MIN) / (LOG_MAX - LOG_MIN);
   return px(g.H - g.PAD.b - t * (g.H - g.PAD.t - g.PAD.b));
 }
@@ -106,14 +107,18 @@ export function Climb({ launches, now }: { launches: Launch[]; now: number }) {
     });
     return {
       dots: ds,
-      halfway: launches.filter((l) => l.graduationProgress < 50).length,
+      halfway: launches.filter((l) => l.graduationProgress < 0.5).length,
       // The threshold is 100× the field named graduationTargetUsd — see lib/pools.ts.
-      target: launches[0] ? graduationThresholdUsd(launches[0]) : 5_000_000,
-      leaders: [...launches].sort((a, b) => b.graduationProgress - a.graduationProgress).slice(0, 5),
+      target: launches[0] ? graduationThresholdUsd(launches[0]) : 50_000,
+      leaders: launches
+        .filter((l) => !hasGraduated(l))
+        .sort((a, b) => b.graduationProgress - a.graduationProgress)
+        .slice(0, 5),
     };
   }, [launches, g, now]);
 
-  // One line per decade of FDV: 0.1% → $5K, 1% → $50K, 10% → $500K, 100% → $5M.
+  // One line per decade of FDV, in multiples of the $50K threshold:
+  //   0.1x → $5K, 1x → $50K (graduation), 10x → $500K, 100x → $5M.
   const gridlines = [0.1, 1, 10, 100];
   const ticks = [
     { m: 60, label: "1h" },
@@ -189,7 +194,7 @@ export function Climb({ launches, now }: { launches: Launch[]; now: number }) {
                     fontSize={fs}
                     fill={v === 100 ? "#00FFC2" : "#888A88"}
                   >
-                    {usd((target * v) / 100)}
+                    {usd(target * v)}
                   </text>
                 </g>
               ))}
@@ -259,7 +264,7 @@ export function Climb({ launches, now }: { launches: Launch[]; now: number }) {
                     {hover.l.tokenName.slice(0, 20)}
                   </text>
                   <text x="12" y="33" className="num" fontSize="11" fill="#888A88">
-                    {hover.l.graduationProgress.toFixed(1)}% · {usd(hover.l.fdvUsd)} FDV ·{" "}
+                    {climbLabel(hover.l.graduationProgress)} · {usd(hover.l.fdvUsd)} FDV ·{" "}
                     {compact(hover.l.holderCount)} holders
                   </text>
                 </g>
@@ -288,7 +293,7 @@ export function Climb({ launches, now }: { launches: Launch[]; now: number }) {
                     </div>
                   </div>
                   <div className="num shrink-0 text-right">
-                    <div className="text-sm text-mint">{l.graduationProgress.toFixed(1)}%</div>
+                    <div className="text-sm text-mint">{climbLabel(l.graduationProgress)}</div>
                     <div
                       className={`text-[11px] ${
                         l.poolStats.priceChange24hPct >= 0 ? "text-up" : "text-down"

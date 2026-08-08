@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Auction } from "@/lib/pools";
-import { clearingPremium, graduationThresholdUsd } from "@/lib/pools";
+import { bookLabel, clearingPremium, graduationThresholdUsd, progressPct } from "@/lib/pools";
 import { usd, price, compact, hueFrom } from "@/lib/format";
 import { resolveImage } from "@/lib/ipfs";
 
@@ -110,11 +110,11 @@ function AuctionCard({ a }: { a: Auction }) {
         <div className="scan-track h-1 overflow-hidden rounded-full">
           <div
             className="h-full rounded-full bg-mint/70"
-            style={{ width: `${Math.min(Math.max(a.graduationProgress, 1.5), 100)}%` }}
+            style={{ width: `${Math.min(Math.max(progressPct(a.graduationProgress), 1.5), 100)}%` }}
           />
         </div>
         <div className="num mt-2 flex justify-between text-[11px] text-muted">
-          <span>{a.graduationProgress.toFixed(1)}% of book filled</span>
+          <span>{bookLabel(a.graduationProgress)}</span>
           <span>{usd(target)} to settle</span>
         </div>
       </div>

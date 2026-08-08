@@ -249,40 +249,76 @@ export function fetchOhlc(
 /* ------------------------------------------------------------------ derived */
 
 /**
- * `graduationTargetUsd` is NOT the threshold — it is one percent of it.
+ * `graduationProgress` is a MULTIPLE of the threshold, not a percentage of it.
  *
- * Verified 2026-08-07 against all 100 rows of curve.listLaunches:
- *   fdvUsd / graduationProgress === 50000.0  for 100 of 100 (min = max = median)
- * and `graduationTargetUsd` is 50000 on every row. So progress is
- * `fdvUsd / graduationTargetUsd`, and 100% lands at a $5,000,000 FDV.
+ * An earlier reading of this got it wrong by 100x, in the direction that felt like the
+ * careful correction. The arithmetic `fdvUsd / graduationProgress === 50000` holds
+ * either way; what settles it is what the chain does.
  *
- * Same rule holds for Crowd Launch auctions, where the measured quantity is
- * raisedUsd rather than FDV: RHPS raised $104,184 against a target of $5,020.28
- * and reported 20.7526% — 104184 / 5020.28 = 20.752.
+ * Three independent checks against a live feed of 100 launches (2026-08-08):
  *
- * Reading the field name literally would understate every threshold by 100×.
+ *   1. `graduationProgress === fdvUsd / graduationTargetUsd` for 100 of 100 rows, and
+ *      `graduationTargetUsd` is 50000 for every one of them. Progress is that ratio,
+ *      so 1.0 is the threshold and nothing else can be.
+ *   2. Token 222 (0x21ed792d…) migrated at roughly $40K market cap while the API
+ *      reported graduationProgress 6.09 — a token cannot migrate at 6% of the way.
+ *   3. The pools separate into two regimes at exactly 1.0:
+ *        progress < 1.0   (81 of 100)   liquidity / FDV median 1.008
+ *        progress >= 1.0  (19 of 100)   liquidity / FDV median 0.377
+ *      Liquidity equal to FDV is the signature of the whole supply sitting in one
+ *      single-sided curve position; a fraction of FDV is a migrated pool. That break
+ *      is a regime change, not a gradient, and it lands on 1.0.
+ *
+ * So: graduation happens at `graduationTargetUsd` of FDV — $50,000 — and progress
+ * times 100 is the percentage.
  */
 export function graduationThresholdUsd(l: { graduationTargetUsd: number }) {
-  return l.graduationTargetUsd * 100;
+  return l.graduationTargetUsd;
 }
 
-/** Progress can exceed 100 — a curve sits above the line until the migration tx lands. */
-export const GRADUATION_FLOOR = 99.5;
+/** progress 1.0 === graduated. Multiply for display. */
+export function progressPct(progress: number) {
+  return progress * 100;
+}
 
 /**
- * The API uses different status vocabularies per endpoint: listLaunches says
- * "curveLive", getLaunchByAddress says "trading", listAuctions says "live" /
- * "graduated". So this is an allowlist, not a negation — an unrecognised status must
- * read as "still climbing", never as a graduation we can't actually vouch for.
+ * An auction carries the same ratio — raised over the settle target — and it runs far
+ * past 1.0, because a uniform-price batch auction keeps taking bids after the target is
+ * met (RHPS raised $104,184 against a $5,020 target: 20.75x). Printing that as "20.75%
+ * of the book filled" was wrong twice over: wrong scale, and wrong word.
  */
-const GRADUATED_STATUSES = new Set(["graduated", "graduating", "migrated"]);
-
-export function hasGraduated(l: { status?: string | null }) {
-  return GRADUATED_STATUSES.has((l.status ?? "").toLowerCase());
+export function bookLabel(progress: number) {
+  return progress >= 1
+    ? `${progress.toFixed(progress < 10 ? 1 : 0)}\u00d7 oversubscribed`
+    : `${progressPct(progress).toFixed(0)}% of the book filled`;
 }
 
+/** Progress runs past 1.0 — a curve keeps trading in its pool after it migrates. */
+export const GRADUATION_FLOOR = 1;
+
+/**
+ * Status is unreliable here: the feed still reported "curveLive" for a token that had
+ * demonstrably migrated. The ratio is measurable and the status is a label, so the
+ * ratio wins.
+ */
+export function hasGraduated(l: { graduationProgress?: number; status?: string | null }) {
+  return (l.graduationProgress ?? 0) >= GRADUATION_FLOOR;
+}
+
+/**
+ * Under the line, a percentage is the readable form. Over it, the same number turns
+ * into four digits — FRONG at 100.9x prints as "10091%", which is honest and useless.
+ * Past graduation the multiple is the number that means something.
+ */
+export function climbLabel(progress: number) {
+  return progress >= GRADUATION_FLOOR
+    ? `${progress.toFixed(progress < 10 ? 1 : 0)}\u00d7`
+    : `${progressPct(progress).toFixed(0)}%`;
+}
+
+/** Within the last fifth of the climb, and not yet over the line. */
 export function isNearGraduation(l: Launch) {
-  return l.graduationProgress >= 85 && !hasGraduated(l);
+  return l.graduationProgress >= 0.8 && l.graduationProgress < GRADUATION_FLOOR;
 }
 
 export function ageMs(l: Launch) {
@@ -340,7 +376,7 @@ export function filterLaunches(rows: Launch[], key: FilterKey) {
     case "near":
       return rows.filter(isNearGraduation);
     case "graduated":
-      return rows.filter((l) => hasGraduated(l) || l.graduationProgress >= GRADUATION_FLOOR);
+      return rows.filter(hasGraduated);
     case "linkedX":
       return rows.filter((l) => Boolean(l.xUrl));
     default:

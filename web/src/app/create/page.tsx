@@ -13,7 +13,7 @@ export default function CreatePage() {
           <h1 className="display text-5xl text-ink">Launch a token</h1>
           <p className="mt-4 text-[15px] leading-relaxed text-ink-dim">
             One billion supply, a bonding curve priced in ETH, and a pool that opens itself once
-            fully-diluted value reaches $5M. You pick the swap fee and keep it.
+            fully-diluted value reaches $50K. You pick the swap fee and keep it.
           </p>
           <CreateWizard />
         </div>
@@ -39,7 +39,7 @@ export default function CreatePage() {
               <li className="flex gap-3">
                 <span className="num shrink-0 text-mint">3</span>
                 <span>
-                  At $5M FDV the curve stops and the liquidity migrates into a real pool. That is
+                  At $50K FDV the curve stops and the liquidity migrates into a real pool. That is
                   graduation, and it is the only exit the curve has.
                 </span>
               </li>

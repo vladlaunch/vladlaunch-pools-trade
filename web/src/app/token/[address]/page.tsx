@@ -8,6 +8,9 @@ import {
   fetchActivityStats,
   fetchAuction,
   graduationThresholdUsd,
+  climbLabel,
+  bookLabel,
+  progressPct,
   hasGraduated,
   clearingPremium,
 } from "@/lib/pools";
@@ -266,11 +269,11 @@ function AuctionView({ auction: a, meta }: { auction: Auction; meta: OnChainMeta
           <div className="scan-track h-1 overflow-hidden rounded-full">
             <div
               className="h-full rounded-full bg-mint/70"
-              style={{ width: `${Math.min(Math.max(a.graduationProgress, 1.5), 100)}%` }}
+              style={{ width: `${Math.min(Math.max(progressPct(a.graduationProgress), 1.5), 100)}%` }}
             />
           </div>
           <div className="num mt-2 flex justify-between text-[11px] text-muted">
-            <span>{a.graduationProgress.toFixed(1)}% of the book filled</span>
+            <span>{bookLabel(a.graduationProgress)}</span>
             <span>{usd(target)} to settle</span>
           </div>
         </div>
@@ -483,7 +486,7 @@ export default async function TokenPage({ params }: { params: Promise<{ address:
             ) : (
             <>
             <div className="num mt-3 flex items-baseline gap-2">
-              <span className="text-3xl text-mint">{launch.graduationProgress.toFixed(1)}%</span>
+              <span className="text-3xl text-mint">{climbLabel(launch.graduationProgress)}</span>
               <span className="text-[12px] text-muted">of {usd(threshold)}</span>
             </div>
             <div className="mt-4">

@@ -10,6 +10,22 @@ type Tab = "trades" | "traders";
 /** One tx can emit several fills, so txHash alone is not unique. */
 const tradeKey = (t: Trade) => `${t.txHash}-${t.atMs}-${t.side}-${t.tokens}`;
 
+/**
+ * ...and those fills can be byte-identical: same hash, side, size, millisecond. Content
+ * is therefore not an identity either, and React was dropping the duplicate row. The nth
+ * repeat gets its own suffix; `tradeKey` stays the content key so the new-row flash still
+ * fires on content, not on position.
+ */
+function withKeys(trades: Trade[]) {
+  const seenSoFar = new Map<string, number>();
+  return trades.map((t) => {
+    const base = tradeKey(t);
+    const n = seenSoFar.get(base) ?? 0;
+    seenSoFar.set(base, n + 1);
+    return { t, key: n === 0 ? base : `${base}#${n}` };
+  });
+}
+
 export function TradeFeed({
   tokenAddress,
   initialTrades,
@@ -95,9 +111,9 @@ export function TradeFeed({
                   </td>
                 </tr>
               )}
-              {trades.map((t) => (
+              {withKeys(trades).map(({ t, key }) => (
                 <tr
-                  key={tradeKey(t)}
+                  key={key}
                   className={`border-b border-line/30 last:border-0 ${
                     seen.has(tradeKey(t)) ? "" : "flash-row"
                   }`}
